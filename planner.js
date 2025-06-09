@@ -212,41 +212,54 @@ function addCustomOrder(e) {
   generateSchedule();
 }
 
-function loadOrders(machine) {
-  return fetch(machine + '.json')
-    .then(r => r.json())
-    .then(data => {
-      availableOrders = calculateAllProductionTimes(data);
-      plannedSequence = [];
-      resetSchedule();
-      renderOrderList();
-      renderSequence();
-      generateSchedule();
-    });
+async function loadOrders(machine) {
+  try {
+    const resp = await fetch(machine + '.json');
+    const data = await resp.json();
+    availableOrders = calculateAllProductionTimes(data)
+      .sort((a,b)=>{
+        const aStart=parseFloat(a['Planerad start']||0);
+        const bStart=parseFloat(b['Planerad start']||0);
+        return aStart-bStart;
+      });
+  } catch (err) {
+    console.error('Could not load orders:', err);
+    availableOrders = [];
+  }
+  plannedSequence = [];
+  resetSchedule();
+  renderOrderList();
+  renderSequence();
+  generateSchedule();
 }
 
-function loadSelectedPlan(){
+async function loadSelectedPlan(){
   const sel=document.getElementById('savedPlans');
-  const name=sel.value; if(!name) {plannedSequence=[];renderSequence();renderOrderList();return;}
+  const name=sel.value;
+  if(!name){
+    plannedSequence=[];
+    renderSequence();
+    renderOrderList();
+    return;
+  }
   const machine=document.getElementById('machineSelect').value;
   const plan=getSaved(machine)[name];
   if(!plan) return;
-  loadOrders(machine).then(()=>{
-    document.getElementById('savedPlans').value = name;
-    plan.forEach(p=>{
-      const idx=availableOrders.findIndex(o=>o['Kundorder']===p['Kundorder']);
-      if(idx>-1) availableOrders.splice(idx,1);
-    });
-    plannedSequence=plan.slice();
-    renderOrderList();
-    renderSequence();
-    generateSchedule();
+  await loadOrders(machine);
+  document.getElementById('savedPlans').value = name;
+  plan.forEach(p=>{
+    const idx=availableOrders.findIndex(o=>o['Kundorder']===p['Kundorder']);
+    if(idx>-1) availableOrders.splice(idx,1);
   });
+  plannedSequence=plan.slice();
+  renderOrderList();
+  renderSequence();
+  generateSchedule();
 }
 
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded',async ()=>{
   const select=document.getElementById('machineSelect');
-  loadOrders(select.value);
+  await loadOrders(select.value);
   loadSavedNames(select.value);
   select.addEventListener('change', () => { loadOrders(select.value); loadSavedNames(select.value); });
   document.getElementById('savePlanBtn').onclick = () => {
