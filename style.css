@@ -232,6 +232,28 @@ button:hover, .shift-btn:hover { background: #2563eb; }
   gap: 8px;
 }
 
+/* --- Machine navigation Sidebar --- */
+.machine-sidebar { margin-top: 24px; width: 100%; }
+.machine-sidebar h2 { font-size: 1em; color: #a5b4fc; margin-bottom: 8px; margin-top: 0; }
+.machine-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.machine-btn {
+  background: #3b82f6;
+  color: #fff;
+  padding: 10px 16px;
+  text-decoration: none;
+  border-radius: 7px;
+  text-align: center;
+  font-weight: 700;
+  box-shadow: 0 2px 8px #1e40af33;
+  transition: background 0.2s;
+}
+.machine-btn:hover { background: #2563eb; }
+
 /* --- Index summary and navigation --- */
 .summary-container { text-align: center; margin-top: 20px; }
 .summary-box { margin-top:20px; }
