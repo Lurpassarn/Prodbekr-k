@@ -4,6 +4,11 @@ body {
   color: #374151;
   font-family: 'Inter', 'Roboto', Arial, sans-serif;
 }
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
 
 /* --- Layout & Containers --- */
 .main-hub, .container {
@@ -13,11 +18,15 @@ body {
   margin: 20px auto;
   padding: 24px;
   max-width: 1200px;
+  height: 100%;
+  overflow: auto;
 }
 
 /* --- Sidebar --- */
 .sm25-app {
   display: flex;
+  height: 100%;
+  overflow: hidden;
 }
 .sm25-sidebar {
   width: 240px;
@@ -64,6 +73,8 @@ body {
 .sm25-main {
   margin-left: 240px;
   padding: 0 12px;
+  flex: 1;
+  overflow-y: auto;
 }
 .sm25-header {
   background: #fff;
@@ -300,6 +311,10 @@ button:hover, .shift-btn:hover { background: #4338ca; }
   padding:10px;
   box-shadow:0 2px 4px rgba(0,0,0,0.05);
 }
+.orders-container-scroll {
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+}
 .order-summary{display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:10px;}
 .calc-result{margin-top:6px;background:#f9fafb;border-radius:6px;padding:8px;}
 .analysis-box{background:#fef2f2;border-left:4px solid #ef4444;padding:10px 12px;border-radius:8px;color:#991b1b;margin-bottom:12px;}
@@ -322,4 +337,48 @@ input, select {
   border:1px solid #d1d5db;
   border-radius:6px;
   padding:6px 8px;
+}
+
+/* --- Planner page --- */
+.planner-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.planner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.planner-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.planner-columns {
+  display: flex;
+  flex: 1;
+  gap: 20px;
+  overflow: hidden;
+}
+.planner-left, .planner-right {
+  flex: 1;
+  overflow-y: auto;
+}
+.order-list, .sequence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.custom-form {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.plan-name {
+  margin: 8px 0;
 }
