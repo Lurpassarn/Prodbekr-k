@@ -210,7 +210,12 @@ async function loadOrders(machine) {
   try {
     const resp = await fetch(machine + '.json');
     const data = await resp.json();
-    availableOrders = calculateAllProductionTimes(data);
+    availableOrders = calculateAllProductionTimes(data)
+      .sort((a,b)=>{
+        const aStart=parseFloat(a['Planerad start']||0);
+        const bStart=parseFloat(b['Planerad start']||0);
+        return aStart-bStart;
+      });
   } catch (err) {
     console.error('Could not load orders:', err);
     availableOrders = [];
