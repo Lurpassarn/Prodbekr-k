@@ -60,7 +60,6 @@ function renderOrderList() {
   });
 }
 
-
 function renderSequence() {
   const seq = document.getElementById('sequenceList');
   seq.innerHTML = '';
@@ -77,7 +76,6 @@ function renderSequence() {
     seq.appendChild(div);
   });
 }
-
 
 function renderSchedule() {
   const container = document.getElementById('scheduleContainer');
