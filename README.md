@@ -26,4 +26,12 @@ The script creates `SM25_with_times.json`, `SM27_with_times.json` and `SM28_with
 
 ## Manual Planner
 
-Open `planner.html` in a browser to manually plan orders. The page lets you pick orders for a machine and assign them to FM, EM or Natt shift. The planner calculates start and end times using the same production formulas as the machine pages and splits orders across shifts when necessary.
+Open `planner.html` from the start page to build custom schedules. Features include:
+
+* Choose which machine to load orders for
+* Drag and drop orders to arrange a custom sequence
+* Add your own order using the input form
+* Save the sequence under a name and load it later
+* Generate a shift schedule using the same calculations as the machine pages
+
+Saved plans appear in a selector on each machine page so you can view the generated schedule or one of your custom plans.

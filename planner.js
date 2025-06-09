@@ -185,7 +185,7 @@ function saveCurrentPlan(){
 }
 
 function loadOrders(machine){
-  fetch(machine+'.json')
+  return fetch(machine+'.json')
     .then(r=>r.json())
     .then(data=>{
       availableOrders=calculateAllProductionTimes(data);
@@ -204,8 +204,7 @@ function loadSelectedPlan(){
   const machine=document.getElementById('machineSelect').value;
   const plan=getSaved(machine)[name];
   if(!plan) return;
-  loadOrders(machine);
-  Promise.resolve().then(()=>{
+  loadOrders(machine).then(()=>{
     // remove duplicates from available orders
     plan.forEach(p=>{
       const idx=availableOrders.findIndex(o=>o['Kundorder']===p['Kundorder']);
