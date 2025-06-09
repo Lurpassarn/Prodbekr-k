@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produktionsöversikt</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="main-hub">
+        <header>
+            <h1>Produktionsöversikt - 24-timmars cykel</h1>
+            <p>Välkommen till översikten för produktionsplaneringen över 24 timmar för arkmaskinerna SM25, SM27 och SM28. Här ser du en summering av varje maskins prestanda per skift. Klicka på en maskin för detaljerad planering och uträkningar.</p>
+        </header>
+        <div class="summary-container">
+            <h2>Summering av arkmaskiner</h2>
+            <div class="summary-box" id="machineSummaries"></div>
+        </div>
+        <div class="nav-buttons">
+            <a href="sm25.html" class="nav-button">Gå till SM25</a>
+            <a href="sm27.html" class="nav-button">Gå till SM27</a>
+            <a href="sm28.html" class="nav-button">Gå till SM28</a>
+        </div>
+        <div class="guidance">
+            <p><strong>Övrigt att tänka på:</strong> Tider baseras på "Arklängd" och "RawRollWidth". Utforska maskinsidor för detaljer.</p>
+        </div>
+    </div>
+    <script src="production.js"></script>
+    <script>
+        async function loadSummary() {
+            const machines = ['SM25', 'SM27', 'SM28'];
+            const summaries = {};
+
+            for (const machine of machines) {
+                const response = await fetch(`${machine}.json`);
+                const orders = await response.json();
+                const ordersWithTimes = calculateAllProductionTimes(orders);
+                // Dynamisk summering per skift, exakt som på maskinsidorna
+                const shifts = { FM: [], EM: [], Natt: [] };
+                const shiftLimits = {
+                    FM: 14 * 60, // 06:00-14:00
+                    EM: 22.5 * 60, // 14:00-22:30
+                    Natt: 30 * 60 // 22:30-06:00 (nästa dag)
+                };
+                let usedMinutes = 0;
+                let shiftCurrent = { FM: 6 * 60, EM: 14 * 60, Natt: 22.5 * 60 };
+                for (let shiftKey of ['FM', 'EM', 'Natt']) {
+                    let shiftStart = shiftCurrent[shiftKey];
+                    let shiftEnd = shiftLimits[shiftKey];
+                    for (let i = 0; i < ordersWithTimes.length; i++) {
+                        const order = ordersWithTimes[i];
+                        if (order._scheduled) continue;
+                        const time = order.productionTimeNormal || order.productionTimeSaxning || 0;
+                        // Hantera midnatt: Om start/slut går över 24:00 (1440 min), börja om på 0
+                        let realStart = shiftStart;
+                        let realEnd = shiftStart + time;
+                        if (realStart >= 1440) realStart -= 1440;
+                        if (realEnd >= 1440) realEnd -= 1440;
+                        // Exkludera ordrar som INTE startar efter 22:30 eller slutar före 06:00 (efter midnatt)
+                        if (shiftKey === 'Natt' && !(realStart >= 1350 || realEnd <= 360)) continue;
+                        if (shiftStart + time > shiftEnd) continue;
+                        order.startTime = realStart;
+                        order.endTime = realEnd;
+                        order.shift = shiftKey;
+                        order.adjustedTime = time;
+                        shifts[shiftKey].push(order);
+                        order._scheduled = true;
+                        shiftStart = order.endTime >= 1440 ? order.endTime - 1440 : order.endTime;
+                        usedMinutes += time;
+                        if (usedMinutes >= 24 * 60) break;
+                    }
+                    if (usedMinutes >= 24 * 60) break;
+                }
+                // Summera per skift
+                summaries[machine] = { shifts: {} };
+                Object.keys(shifts).forEach(shift => {
+                    const totalKg = shifts[shift].reduce((acc, order) => acc + parseFloat(order['Planerad Vikt'] || 0), 0);
+                    const totalOrders = shifts[shift].length;
+                    const totalTime = shifts[shift].reduce((acc, order) => acc + order.adjustedTime, 0);
+                    const kgPerHour = totalTime > 0 ? (totalKg / (totalTime / 60)) : 0;
+                    summaries[machine].shifts[shift] = {
+                        totalKg,
+                        totalOrders,
+                        totalTime,
+                        kgPerHour,
+                        orders: shifts[shift]
+                    };
+                });
+                // Lägg till totalsummering över dygnet
+                const allShifts = Object.values(summaries[machine].shifts);
+                const totalDygnKg = allShifts.reduce((a,s)=>a+s.totalKg,0);
+                const totalDygnOrders = allShifts.reduce((a,s)=>a+s.totalOrders,0);
+                const totalDygnTime = allShifts.reduce((a,s)=>a+s.totalTime,0);
+                const totalDygnKgPerHour = totalDygnTime > 0 ? (totalDygnKg/(totalDygnTime/60)) : 0;
+                summaries[machine].totalDygn = {
+                    totalKg: totalDygnKg,
+                    totalOrders: totalDygnOrders,
+                    totalTime: totalDygnTime,
+                    kgPerHour: totalDygnKgPerHour
+                };
+            }
+
+            const container = document.getElementById('machineSummaries');
+            container.innerHTML = '';
+            const shiftNames = { FM: 'FM', EM: 'EM', Natt: 'Natt' };
+            // Skapa en horisontell rad med maskiner
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.gap = '32px';
+            row.style.justifyContent = 'center';
+            row.style.margin = '32px 0 0 0';
+            machines.forEach(machine => {
+                const data = summaries[machine];
+                const div = document.createElement('div');
+                div.className = 'summary-item summary-collapsible';
+                div.style.flex = '1 1 0';
+                div.style.minWidth = '220px';
+                div.style.cursor = 'pointer';
+                div.style.transition = 'box-shadow 0.2s';
+                div.style.boxShadow = '0 2px 8px #e0e7ef';
+                div.style.borderRadius = '12px';
+                div.style.background = '#fff';
+                div.style.padding = '18px 18px 10px 18px';
+                div.style.position = 'relative';
+                // Totalt över dygnet box
+                const total = data.totalDygn;
+                const totalBox = `
+                    <div class="summary-total-dygn" style="background:#2563eb;color:#fff;border-radius:10px;padding:14px 18px 10px 18px;margin-bottom:12px;box-shadow:0 2px 8px #b6d0fa;">
+                        <div style="font-size:1.13em;font-weight:700;letter-spacing:1px;">Totalt över dygnet</div>
+                        <div style="margin-top:6px;font-size:1.08em;">
+                            Ordrar: <b>${total.totalOrders}</b><br>
+                            KG: <b>${total.totalKg.toFixed(2)}</b><br>
+                            KG/TIM: <b>${total.kgPerHour.toFixed(2)}</b> ${(total.kgPerHour > 50) ? '📈' : '📉'}
+                        </div>
+                    </div>
+                `;
+                div.innerHTML = `
+                    <div class="summary-header" style="display:flex;align-items:center;justify-content:space-between;">
+                        <h3 style="margin:0">${machine}</h3>
+                        <span class="arrow" style="font-size:1.5em;transition:transform 0.2s;">&#9654;</span>
+                    </div>
+                    ${totalBox}
+                    <div class="summary-main">
+                        <b>Teoretiskt (24h utan avbrott):</b><br>
+                        KG/TIM: ${(() => {
+                            const totKg = Object.values(data.shifts).reduce((a,s)=>a+s.totalKg,0);
+                            return (totKg/24).toFixed(2);
+                        })()}
+                        <br>
+                        <b>Med rastväxling:</b><br>
+                        KG/TIM: ${(() => {
+                            const totKg = Object.values(data.shifts).reduce((a,s)=>a+s.totalKg,0);
+                            const normalRate = totKg/24;
+                            const totalOutput = (22.5*normalRate) + (1.5*0.5*normalRate);
+                            return (totalOutput/24).toFixed(2);
+                        })()}
+                    </div>
+                    <div class="summary-shifts" style="display:none;margin-top:12px;">
+                        ${Object.keys(data.shifts).map(shift => {
+                            const s = data.shifts[shift];
+                            return `
+                            <div class="shift-summary-mini">
+                                <b>${shiftNames[shift]}</b>:<br>
+                                Ordrar: ${s.totalOrders}<br>
+                                KG: ${s.totalKg.toFixed(2)}<br>
+                                KG/TIM: ${s.kgPerHour.toFixed(2)} ${s.kgPerHour > 50 ? '📈' : '📉'}
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                div.addEventListener('click', function(e) {
+                    // Stäng alla andra
+                    document.querySelectorAll('.summary-collapsible').forEach(box => {
+                        if (box !== div) {
+                            box.querySelector('.summary-shifts').style.display = 'none';
+                            box.querySelector('.arrow').style.transform = 'rotate(0deg)';
+                            box.style.boxShadow = '0 2px 8px #e0e7ef';
+                        }
+                    });
+                    const shiftsDiv = div.querySelector('.summary-shifts');
+                    const arrow = div.querySelector('.arrow');
+                    if (shiftsDiv.style.display === 'block') {
+                        shiftsDiv.style.display = 'none';
+                        arrow.style.transform = 'rotate(0deg)';
+                        div.style.boxShadow = '0 2px 8px #e0e7ef';
+                    } else {
+                        shiftsDiv.style.display = 'block';
+                        arrow.style.transform = 'rotate(90deg)';
+                        div.style.boxShadow = '0 4px 18px #b6d0fa';
+                    }
+                    e.stopPropagation();
+                });
+                row.appendChild(div);
+            });
+            container.appendChild(row);
+        }
+        loadSummary();
+    </script>
+</body>
+</html>

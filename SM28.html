@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SM28 Produktionsplan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>SM28 Produktionsplan</h1>
+        <div id="ordersContainer"></div>
+        <a href="index.html" class="back-button">Tillbaka till översikt</a>
+    </div>
+    <div class="guidance">
+        <p><strong>Övrigt att tänka på:</strong> Tider baseras på "Arklängd" och "RawRollWidth". Använd stoppfunktionen vid pauser. Kontrollera varningar för saknad data.</p>
+    </div>
+    <script src="production.js"></script>
+    <script>
+        let isPaused = false;
+        let pauseStartTime = 0;
+        let totalPauseTime = 0;
+
+        async function loadOrders() {
+            const response = await fetch('SM28.json');
+            const orders = await response.json();
+            const ordersWithTimes = calculateAllProductionTimes(orders);
+            const ordersContainer = document.getElementById('ordersContainer');
+            ordersContainer.innerHTML = '';
+            const shifts = { FM: [], EM: [], Natt: [] };
+            // Räkna ut max sluttid för varje skift
+            const shiftLimits = {
+                FM: 14 * 60, // 06:00-14:00
+                EM: 22.5 * 60, // 14:00-22:30
+                Natt: 30 * 60 // 22:30-06:00 (nästa dag)
+            };
+            let currentTime = 6 * 60; // Start vid 06:00 i minuter
+            let usedMinutes = 0;
+            let shiftCurrent = { FM: 6 * 60, EM: 14 * 60, Natt: 22.5 * 60 };
+            // Fyll varje skift för sig tills dess sluttid
+            for (let shiftKey of ['FM', 'EM', 'Natt']) {
+                let shiftStart = shiftCurrent[shiftKey];
+                let shiftEnd = shiftLimits[shiftKey];
+                for (let i = 0; i < ordersWithTimes.length; i++) {
+                    const order = ordersWithTimes[i];
+                    if (order._scheduled) continue; // Hoppa redan schemalagda ordrar
+                    const time = order.productionTimeNormal || order.productionTimeSaxning || 0;
+                    const adjustedTime = isPaused ? time + (totalPauseTime / 60) : time;
+                    // Om ordern inte får plats i skiftet, hoppa över
+                    if (shiftStart + adjustedTime > shiftEnd) continue;
+                    order.startTime = shiftStart;
+                    order.endTime = shiftStart + adjustedTime;
+                    order.shift = shiftKey;
+                    order.adjustedTime = adjustedTime;
+                    order.productionTime = time;
+                    order.isSaxning = (parseFloat(order['RawRollWidth'] || '0') <= 1035 && estimateRollCount(order) >= 2);
+                    order.isProfitable = order.isSaxning ? (order.productionTimeSaxning < order.productionTimeNormal) : false;
+                    shifts[shiftKey].push(order);
+                    order._scheduled = true;
+                    shiftStart = order.endTime;
+                    usedMinutes += adjustedTime;
+                    if (usedMinutes >= 24 * 60) break;
+                }
+                if (usedMinutes >= 24 * 60) break;
+            }
+
+            // Skift-knappar och summering
+            const shiftNames = { FM: 'FM-Skift', EM: 'EM-Skift', Natt: 'Natt-Skift' };
+            Object.keys(shifts).forEach(shift => {
+                // Skift-knapp
+                const btn = document.createElement('button');
+                btn.className = 'shift-toggle';
+                btn.innerHTML = `<span class="shift-arrow">&#9654;</span> ${shiftNames[shift]}`;
+                btn.setAttribute('data-shift', shift);
+                btn.onclick = function() {
+                    const section = document.getElementById('section-' + shift);
+                    const isOpen = section && section.style.display === 'block';
+                    Object.keys(shifts).forEach(s => {
+                        const sec = document.getElementById('section-' + s);
+                        if (sec) sec.style.display = 'none';
+                        const b = document.querySelector(`button[data-shift="${s}"]`);
+                        if (b) {
+                            b.classList.remove('active-shift');
+                            const arrow = b.querySelector('.shift-arrow');
+                            if (arrow) arrow.innerHTML = '&#9654;';
+                        }
+                    });
+                    if (!isOpen) {
+                        section.style.display = 'block';
+                        btn.classList.add('active-shift');
+                        const arrow = btn.querySelector('.shift-arrow');
+                        if (arrow) arrow.innerHTML = '&#9660;';
+                        section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                };
+                ordersContainer.appendChild(btn);
+
+                // Summering
+                const shiftSummary = document.createElement('div');
+                shiftSummary.className = 'shift-summary';
+                const totalKg = shifts[shift].reduce((acc, order) => acc + parseFloat(order['Planerad Vikt'] || 0), 0);
+                const totalOrders = shifts[shift].length;
+                const totalTime = shifts[shift].reduce((acc, order) => acc + order.adjustedTime, 0);
+                const kgPerHour = totalTime > 0 ? (totalKg / (totalTime / 60)) : 50;
+                const isHighProduction = kgPerHour > 50;
+                const analysis = [];
+                if (isHighProduction) {
+                    analysis.push('+ Hög produktionstakt, effektiva ordrar. 📈');
+                    if (totalOrders > 5) analysis.push('+ Många ordrar ökar genomströmning.');
+                    // Lägg till förklaring till varför produktionen kan bli låg även vid hög produktion
+                    if (totalOrders <= 5) analysis.push('+ Få ordrar kan ändå ge låg totalproduktion.');
+                } else {
+                    analysis.push('- Låg produktionstakt, kontrollera orderstorlek. 📉');
+                    if (totalOrders < 3) analysis.push('- Få ordrar kan minska effektivitet.');
+                    // Lägg till tips även vid låg produktion
+                    if (kgPerHour < 30) analysis.push('- Mycket låg KG/TIM, kontrollera om små ordrar eller långa ställtider.');
+                }
+                shiftSummary.innerHTML = `
+                    <h3>Summering för ${shiftNames[shift]}:</h3>
+                    <p>Planerad produktion: ${totalKg.toFixed(2)} kg</p>
+                    <p>Körda ordrar: ${totalOrders}</p>
+                    <p>Summa KG/TIM: ${kgPerHour.toFixed(2)}</p>
+                    <div class="analysis">
+                        ${analysis.map(a => `<p>${a}</p>`).join('')}
+                    </div>
+                `;
+                ordersContainer.appendChild(shiftSummary);
+
+                // Skiftsektion (collapsible)
+                const shiftDiv = document.createElement('div');
+                shiftDiv.className = 'shift-section';
+                shiftDiv.id = 'section-' + shift;
+                shiftDiv.style.display = 'none';
+                const shiftWrapper = document.createElement('div');
+                shiftWrapper.className = 'shift-wrapper';
+                // Ordrar i grid-layout, 3 per rad
+                const ordersGrid = document.createElement('div');
+                ordersGrid.className = 'orders-grid';
+                shifts[shift].forEach(order => {
+                    const orderDiv = document.createElement('div');
+                    orderDiv.className = 'order-box';
+                    orderDiv.innerHTML = `
+                        <h3>Order: ${order['Kundorder'] || 'Okänd'}</h3>
+                        <div class="order-info-row">
+                            <div><b>Start:</b> ${formatTime(order.startTime)}</div>
+                            <div><b>Färdig:</b> ${formatTime(order.endTime)}</div>
+                            <div><b>Tid:</b> ${order.adjustedTime.toFixed(2)} min</div>
+                            <div><b>Vikt:</b> ${(order['Planerad Vikt'] || 0).toFixed(2)} kg</div>
+                        </div>
+                        <button class="show-calc-btn">Visa Uträkning</button>
+                        <div class="calc-result" style="display:none;"></div>
+                    `;
+                    orderDiv.querySelector('.show-calc-btn').addEventListener('click', function() {
+                        showOrderCalculation(this, order);
+                    });
+                    ordersGrid.appendChild(orderDiv);
+                });
+                shiftWrapper.appendChild(ordersGrid);
+                shiftDiv.appendChild(shiftWrapper);
+                ordersContainer.appendChild(shiftDiv);
+            });
+        }
+
+        // Visa uträkning direkt under ordern
+        function showOrderCalculation(btn, order) {
+            const resultDiv = btn.nextElementSibling;
+            if (resultDiv.style.display === 'block') {
+                resultDiv.style.display = 'none';
+                return;
+            }
+            resultDiv.style.display = 'block';
+
+            // Hämta ut värden
+            const orderId = order['Kundorder'] || 'Okänd';
+            const productionTimeNormal = order.productionTimeNormal || 0;
+            const productionTimeSaxning = order.productionTimeSaxning || 0;
+            const sheetLength = parseFloat(order['Arklängd']) || 0;
+            const rawRollWidth = order['RawRollWidth'];
+            const plannedWeight = parseFloat(order['Planerad Vikt']) || 0;
+            const gramvikt = parseFloat(order['Gramvikt']) || 0;
+            const lanes = parseFloat(order['Antal banor']) || 1;
+
+            if (!sheetLength || !rawRollWidth || !plannedWeight || !gramvikt) {
+                resultDiv.innerHTML = `<span style='color:#b91c1c'><strong>Kan inte visa uträkning:</strong> Saknar nödvändig data (Arklängd, RawRollWidth, Planerad Vikt, Gramvikt).</span>`;
+                return;
+            }
+
+            const speed = getMachineSpeed('SM28', sheetLength);
+            const rawRollWidthFirst = parseFloat((rawRollWidth+'').split(',')[0]);
+            let L = (plannedWeight * 1000000) / (gramvikt * rawRollWidthFirst);
+            let L_per_lane = L;
+            let lengthFormula = `(${plannedWeight} × 1 000 000) / (${gramvikt} × ${rawRollWidthFirst})`;
+            if (lanes > 1) {
+                L_per_lane = L / lanes;
+                lengthFormula += ` / ${lanes}`;
+            }
+            const productionTimeMinutes = L_per_lane / speed;
+            const stopObj = calculateStopTimes(order);
+            const stopTime = stopObj.normalStopTime / 60;
+            const totalTime = productionTimeMinutes + stopTime;
+
+            function formatMinutesToHMM(mins) {
+                const h = Math.floor(mins / 60);
+                const m = Math.round(mins % 60);
+                return h + ' h ' + m.toString().padStart(2, '0') + ' min';
+            }
+            let comparisonText = '';
+            if (order.isSaxning) {
+                comparisonText = `<em>Jämförelse: Normal tid: ${formatMinutesToHMM(productionTimeNormal)}, Saxning: ${formatMinutesToHMM(productionTimeSaxning)}</em>`;
+            } else {
+                comparisonText = `<em>Normal tid: ${formatMinutesToHMM(productionTimeNormal)}</em>`;
+            }
+
+            // Stegdata med förklaring
+            const steps = [
+                {
+                    title: 'Längd (L)',
+                    desc: 'Beräknar den totala längden papper som ska produceras utifrån vikt, gramvikt och råvalsbredd.',
+                    formula: `L = (Planerad Vikt × 1 000 000) / (Gramvikt × RawRollWidth)${lanes > 1 ? ' / Antal banor' : ''}`,
+                    values: lengthFormula,
+                    result: `<b>${L_per_lane.toFixed(2)} m</b>`
+                },
+                {
+                    title: 'Produktionstid',
+                    desc: 'Beräknar hur lång tid det tar att producera längden L med aktuell maskinhastighet.',
+                    formula: 'Produktionstid = L / Hastighet',
+                    values: `${L_per_lane.toFixed(2)} / ${speed.toFixed(2)}`,
+                    result: `<b>${formatMinutesToHMM(productionTimeMinutes)}</b>`
+                },
+                {
+                    title: 'Stopptid',
+                    desc: 'Summerar planerade stopp (t.ex. rullbyten) för ordern.',
+                    formula: 'Stopptid (från script)',
+                    values: `${stopObj.normalStopTime} sek = ${(stopTime).toFixed(2)} min`,
+                    result: `<b>${formatMinutesToHMM(stopTime)}</b>`
+                },
+                {
+                    title: 'Total tid',
+                    desc: 'Lägger ihop produktionstid och stopptid för att få orderns totala körtid.',
+                    formula: 'Produktionstid + Stopptid',
+                    values: `${formatMinutesToHMM(productionTimeMinutes)} + ${formatMinutesToHMM(stopTime)}`,
+                    result: `<b>${formatMinutesToHMM(totalTime)}</b>`
+                }
+            ];
+
+            // Rendera steg i en stor, horisontell, tydlig layout
+            let stepsHtml = `<div class=\"calc-steps-horizontal\">
+                ${steps.map((step, i) => `
+                    <div class=\"calc-step-big\" data-step=\"${i}\">
+                        <div class=\"calc-step-header-big\">
+                            <span class=\"calc-step-title\">${i+1}. ${step.title}</span>
+                            <span class=\"calc-step-arrow-big\">&#9654;</span>
+                        </div>
+                        <div class=\"calc-step-content-big\">
+                            <div class=\"calc-step-desc\">${step.desc}</div>
+                            <div class=\"calc-step-formula\"><b>Formel:</b> ${step.formula}</div>
+                            <div class=\"calc-step-values\"><b>Värden:</b> ${step.values}</div>
+                            <div class=\"calc-step-result\"><b>Resultat:</b> ${step.result}</div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div style=\"margin-top:16px; color:#555; font-size:1.08em;\">${comparisonText}</div>`;
+
+            resultDiv.innerHTML = stepsHtml;
+
+            // Expanderbar logik: endast ett steg öppet åt gången
+            const stepDivs = resultDiv.querySelectorAll('.calc-step-big');
+            stepDivs.forEach((div, idx) => {
+                const content = div.querySelector('.calc-step-content-big');
+                const arrow = div.querySelector('.calc-step-arrow-big');
+                content.style.display = 'none';
+                div.addEventListener('click', function(e) {
+                    stepDivs.forEach((other, j) => {
+                        const otherContent = other.querySelector('.calc-step-content-big');
+                        const otherArrow = other.querySelector('.calc-step-arrow-big');
+                        if (j === idx) {
+                            const isOpen = otherContent.style.display === 'block';
+                            otherContent.style.display = isOpen ? 'none' : 'block';
+                            otherArrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+                        } else {
+                            otherContent.style.display = 'none';
+                            otherArrow.style.transform = 'rotate(0deg)';
+                        }
+                    });
+                    e.stopPropagation();
+                });
+            });
+        }
+
+        function addStop() {
+            if (!isPaused) {
+                isPaused = true;
+                pauseStartTime = new Date().getTime();
+                document.getElementById('stopInfo').textContent = 'Stopp pausat, klicka igen för att återuppta.';
+            } else {
+                const pauseEndTime = new Date().getTime();
+                const pauseDuration = (pauseEndTime - pauseStartTime) / 1000 / 60; // Minuter
+                totalPauseTime += pauseDuration;
+                isPaused = false;
+                document.getElementById('stopInfo').textContent = `Stopp återupptaget, paus: ${pauseDuration.toFixed(2)} min. Omräknat.`;
+                loadOrders(); // Omräkna med ny tid
+            }
+        }
+
+        // Hjälpfunktion för att formatera tid i HH:MM
+        function formatTime(minutes) {
+            let mins = Math.round(minutes % 60);
+            let hours = Math.floor(minutes / 60);
+            // Om timmar > 23, rulla över till nästa dygn
+            if (hours >= 24) {
+                const days = Math.floor(hours / 24);
+                hours = hours % 24;
+                return `dag ${days + 1} kl ${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            }
+            return `kl ${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+        }
+
+        loadOrders();
+
+        // Efter loadOrders, lägg till kod för att förbättra UI:t direkt i scriptet (för att undvika 90-talskänsla)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Modernare font och bakgrund
+            document.body.style.background = 'linear-gradient(120deg, #f8fafc 0%, #e0e7ef 100%)';
+            document.body.style.fontFamily = 'Roboto, Arial, sans-serif';
+            document.body.style.fontSize = '18px';
+            document.body.style.color = '#222';
+            // Container
+            const container = document.querySelector('.container');
+            if (container) {
+                container.style.maxWidth = '900px';
+                container.style.margin = '40px auto';
+                container.style.background = '#fff';
+                container.style.borderRadius = '18px';
+                container.style.boxShadow = '0 4px 24px 0 rgba(60,80,120,0.10)';
+                container.style.padding = '32px 32px 24px 32px';
+            }
+            // Skiftbar
+            const style = document.createElement('style');
+            style.innerHTML = `
+                .shift-bar { display: flex; justify-content: center; gap: 24px; margin: 32px 0 16px 0; }
+                .shift-toggle { position: relative; font-weight: 600; letter-spacing: 0.5px; box-shadow: 0 2px 8px #e0e7ef, 0 0 0 2px #3b82f6 inset; }
+                .shift-toggle .shift-arrow { font-size: 1.2em; margin-right: 8px; transition: transform 0.2s; }
+                .shift-toggle.active-shift .shift-arrow { transform: rotate(90deg); }
+                .shift-toggle:after { content: 'Klicka för att visa'; display: block; font-size: 0.85em; color: #2563eb; margin-top: 2px; font-weight: 400; letter-spacing: 0; }
+                .shift-wrapper { background: #f4f7fb; border-radius: 0 0 12px 12px; box-shadow: 0 2px 12px #e0e7ef; margin-bottom: 32px; padding: 24px 24px 12px 24px; }
+                .shift-summary { background: #e0e7ef; border-radius: 8px; margin: 0 0 18px 0; padding: 16px 20px; font-size: 1.08em; }
+                .order-box { background: #fff; border-radius: 8px; box-shadow: 0 1px 6px #e0e7ef; margin: 18px 0; padding: 18px 22px; display: flex; flex-direction: column; gap: 6px; }
+                .order-box h3 { margin: 0 0 4px 0; font-size: 1.15em; color: #2563eb; }
+                .order-box button { align-self: flex-start; background: #3b82f6; color: #fff; border: none; border-radius: 6px; padding: 7px 18px; font-size: 1em; margin-top: 6px; cursor: pointer; transition: background 0.2s; }
+                .order-box button:hover { background: #2563eb; }
+                .calc-result { background: #f1f5fa; border-left: 4px solid #3b82f6; border-radius: 0 6px 6px 0; margin: 10px 0 0 0; padding: 10px 18px; font-size: 0.98em; color: #234; }
+                .order-info-row {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 18px 24px;
+                    margin: 6px 0 0 0;
+                    font-size: 1em;
+                    align-items: center;
+                }
+                .order-info-row > div {
+                    min-width: 90px;
+                    padding: 2px 0;
+                    color: #234;
+                }
+                // CSS för grid-layout
+                .orders-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+                    gap: 18px 18px;
+                    margin-top: 18px;
+                }
+                @media (max-width: 700px) {
+                    .container { padding: 8px !important; }
+                    .shift-bar { flex-direction: column; gap: 10px; }
+                    .shift-wrapper { padding: 10px 4px; }
+                    .order-box { padding: 10px 6px; }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+</body>
+</html>
