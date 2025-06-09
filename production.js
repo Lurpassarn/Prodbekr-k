@@ -205,9 +205,14 @@ async function processOrdersFromJson(jsonFile) {
 }
 
 // Exempel på användning
-(async () => {
-    const files = ['SM25.json', 'SM27.json', 'SM28.json'];
-    for (const file of files) {
-        await processOrdersFromJson(file);
-    }
-})();
+// (async () => {
+//     const files = ['SM25.json', 'SM27.json', 'SM28.json'];
+//     for (const file of files) {
+//         await processOrdersFromJson(file);
+//     }
+// })();
+
+// Export for Node.js environments
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports.processOrdersFromJson = processOrdersFromJson;
+}
