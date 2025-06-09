@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Produktionsöversikt</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -24,6 +24,33 @@
         </div>
         <div class="guidance">
             <p><strong>Övrigt att tänka på:</strong> Tider baseras på "Arklängd" och "RawRollWidth". Utforska maskinsidor för detaljer.</p>
+        </div>
+        <div class="manual-calc">
+            <h2>Manuell orderberäkning</h2>
+            <label for="machineSelect">Maskin</label>
+            <select id="machineSelect">
+                <option value="SM25">SM25</option>
+                <option value="SM27">SM27</option>
+                <option value="SM28">SM28</option>
+            </select>
+            <label for="plannedWeight">Planerad Vikt (kg)</label>
+            <input type="number" id="plannedWeight" step="0.01">
+            <label for="gramvikt">Gramvikt (g/m²)</label>
+            <input type="number" id="gramvikt" step="0.1">
+            <label for="rawRollWidth">RawRollWidth (mm)</label>
+            <input type="text" id="rawRollWidth">
+            <label for="arkbredd">Arkbredd (mm)</label>
+            <input type="number" id="arkbredd" step="0.1">
+            <label for="arklangd">Arklängd (mm)</label>
+            <input type="number" id="arklangd" step="0.1">
+            <label for="banor">Antal banor</label>
+            <input type="number" id="banor" step="1" value="1">
+            <label for="resvikt">Reserverad Vikt (kg)</label>
+            <input type="number" id="resvikt" step="0.01">
+            <label for="rullar">Rullar</label>
+            <input type="text" id="rullar" placeholder="t.ex. 3(1)">
+            <button id="calcBtn">Beräkna</button>
+            <div id="calcResult" class="result"></div>
         </div>
     </div>
     <script src="production.js"></script>
@@ -104,29 +131,16 @@
             const container = document.getElementById('machineSummaries');
             container.innerHTML = '';
             const shiftNames = { FM: 'FM', EM: 'EM', Natt: 'Natt' };
-            // Skapa en horisontell rad med maskiner
             const row = document.createElement('div');
-            row.style.display = 'flex';
-            row.style.gap = '32px';
-            row.style.justifyContent = 'center';
-            row.style.margin = '32px 0 0 0';
+            row.className = 'summary-row';
             machines.forEach(machine => {
                 const data = summaries[machine];
                 const div = document.createElement('div');
                 div.className = 'summary-item summary-collapsible';
-                div.style.flex = '1 1 0';
-                div.style.minWidth = '220px';
-                div.style.cursor = 'pointer';
-                div.style.transition = 'box-shadow 0.2s';
-                div.style.boxShadow = '0 2px 8px #e0e7ef';
-                div.style.borderRadius = '12px';
-                div.style.background = '#fff';
-                div.style.padding = '18px 18px 10px 18px';
-                div.style.position = 'relative';
                 // Totalt över dygnet box
                 const total = data.totalDygn;
                 const totalBox = `
-                    <div class="summary-total-dygn" style="background:#2563eb;color:#fff;border-radius:10px;padding:14px 18px 10px 18px;margin-bottom:12px;box-shadow:0 2px 8px #b6d0fa;">
+                    <div class="summary-total-dygn">
                         <div style="font-size:1.13em;font-weight:700;letter-spacing:1px;">Totalt över dygnet</div>
                         <div style="margin-top:6px;font-size:1.08em;">
                             Ordrar: <b>${total.totalOrders}</b><br>
@@ -136,9 +150,9 @@
                     </div>
                 `;
                 div.innerHTML = `
-                    <div class="summary-header" style="display:flex;align-items:center;justify-content:space-between;">
+                    <div class="summary-header">
                         <h3 style="margin:0">${machine}</h3>
-                        <span class="arrow" style="font-size:1.5em;transition:transform 0.2s;">&#9654;</span>
+                        <span class="arrow">&#9654;</span>
                     </div>
                     ${totalBox}
                     <div class="summary-main">
@@ -156,7 +170,7 @@
                             return (totalOutput/24).toFixed(2);
                         })()}
                     </div>
-                    <div class="summary-shifts" style="display:none;margin-top:12px;">
+                    <div class="summary-shifts">
                         ${Object.keys(data.shifts).map(shift => {
                             const s = data.shifts[shift];
                             return `
@@ -175,20 +189,16 @@
                     document.querySelectorAll('.summary-collapsible').forEach(box => {
                         if (box !== div) {
                             box.querySelector('.summary-shifts').style.display = 'none';
-                            box.querySelector('.arrow').style.transform = 'rotate(0deg)';
-                            box.style.boxShadow = '0 2px 8px #e0e7ef';
+                            box.classList.remove('active');
                         }
                     });
                     const shiftsDiv = div.querySelector('.summary-shifts');
-                    const arrow = div.querySelector('.arrow');
                     if (shiftsDiv.style.display === 'block') {
                         shiftsDiv.style.display = 'none';
-                        arrow.style.transform = 'rotate(0deg)';
-                        div.style.boxShadow = '0 2px 8px #e0e7ef';
+                        div.classList.remove('active');
                     } else {
                         shiftsDiv.style.display = 'block';
-                        arrow.style.transform = 'rotate(90deg)';
-                        div.style.boxShadow = '0 4px 18px #b6d0fa';
+                        div.classList.add('active');
                     }
                     e.stopPropagation();
                 });
@@ -197,6 +207,37 @@
             container.appendChild(row);
         }
         loadSummary();
+
+        function formatMinutes(mins) {
+            const h = Math.floor(mins / 60);
+            const m = Math.round(mins % 60);
+            return h + ' h ' + m.toString().padStart(2,'0') + ' min';
+        }
+
+        document.getElementById('calcBtn').addEventListener('click', function() {
+            const order = {
+                'Maskin id': document.getElementById('machineSelect').value,
+                'Planerad Vikt': parseFloat(document.getElementById('plannedWeight').value) || 0,
+                'Gramvikt': parseFloat(document.getElementById('gramvikt').value) || 0,
+                'RawRollWidth': document.getElementById('rawRollWidth').value,
+                'Arkbredd': parseFloat(document.getElementById('arkbredd').value) || 0,
+                'Arklängd': parseFloat(document.getElementById('arklangd').value) || 0,
+                'Antal banor': parseInt(document.getElementById('banor').value) || 1,
+                'Reserverad Vikt': parseFloat(document.getElementById('resvikt').value) || 0,
+                'Rullar': document.getElementById('rullar').value
+            };
+            const rolls = estimateRollCount(order);
+            const { normalTime, saxningTime } = calculateProductionTime(order);
+            const stops = calculateStopTimes(order);
+            const resultDiv = document.getElementById('calcResult');
+            resultDiv.innerHTML = `
+                <p>Uppskattat antal rullar: <b>${rolls}</b></p>
+                <p>Normal produktionstid: <b>${formatMinutes(normalTime)}</b></p>
+                <p>Saxningstid: <b>${formatMinutes(saxningTime)}</b></p>
+                <p>Stopp normal drift: <b>${formatMinutes(stops.normalStopTime/60)}</b></p>
+                <p>Stopp saxning: <b>${formatMinutes(stops.saxningStopTime/60)}</b></p>
+            `;
+        });
     </script>
 </body>
 </html>

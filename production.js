@@ -204,10 +204,10 @@ async function processOrdersFromJson(jsonFile) {
     }
 }
 
-// Exempel på användning
-(async () => {
-    const files = ['SM25.json', 'SM27.json', 'SM28.json'];
-    for (const file of files) {
-        await processOrdersFromJson(file);
-    }
-})();
+// Exempel på användning - inaktiverad i denna version
+// (async () => {
+//     const files = ['SM25.json', 'SM27.json', 'SM28.json'];
+//     for (const file of files) {
+//         await processOrdersFromJson(file);
+//     }
+// })();
