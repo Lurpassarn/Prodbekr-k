@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>Manuell Planerare</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Manuell Planering</h1>
+  <label>Maskin:
+    <select id="machineSelect">
+      <option value="SM25">SM25</option>
+      <option value="SM27">SM27</option>
+      <option value="SM28" selected>SM28</option>
+    </select>
+  </label>
+  <h2>Tillgängliga ordrar</h2>
+  <div id="orderList"></div>
+  <h2>Planerat schema</h2>
+  <div id="scheduleContainer"></div>
+  <script src="production.js"></script>
+  <script src="planner.js"></script>
+</body>
+</html>
