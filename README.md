@@ -35,3 +35,7 @@ Open `planner.html` from the start page to build custom schedules. Features incl
 * Generate a shift schedule using the same calculations as the machine pages
 
 Saved plans appear in a selector on each machine page so you can view the generated schedule or one of your custom plans.
+
+## Running Tests
+
+Run `npm test` to execute the Jest test suite located in the `tests/` directory.
