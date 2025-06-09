@@ -66,6 +66,7 @@ function renderSequence() {
   plannedSequence.forEach((o, idx) => {
     const div = document.createElement('div');
     div.className = 'order-entry';
+    div.draggable = true;
     div.innerHTML = `${idx + 1}. ${o['Kundorder']} - ${o['Planerad Vikt']} kg ` +
       `<button data-idx="${idx}" class="up">&#8679;</button>` +
       `<button data-idx="${idx}" class="down">&#8681;</button>` +
@@ -73,6 +74,18 @@ function renderSequence() {
     div.querySelector('.up').onclick = () => moveSequence(idx, -1);
     div.querySelector('.down').onclick = () => moveSequence(idx, 1);
     div.querySelector('.remove').onclick = () => removeFromSequence(idx);
+    div.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', idx);
+    });
+    div.addEventListener('dragover', e => e.preventDefault());
+    div.addEventListener('drop', e => {
+      e.preventDefault();
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      const item = plannedSequence.splice(fromIdx, 1)[0];
+      plannedSequence.splice(idx, 0, item);
+      renderSequence();
+      generateSchedule();
+    });
     seq.appendChild(div);
   });
 }
@@ -123,6 +136,7 @@ function addToSequence(idx) {
   plannedSequence.push(order);
   renderOrderList();
   renderSequence();
+  generateSchedule();
 }
 
 function moveSequence(idx, dir) {
@@ -132,6 +146,7 @@ function moveSequence(idx, dir) {
   plannedSequence[idx] = plannedSequence[newIndex];
   plannedSequence[newIndex] = temp;
   renderSequence();
+  generateSchedule();
 }
 
 function removeFromSequence(idx) {
@@ -139,6 +154,7 @@ function removeFromSequence(idx) {
   availableOrders.push(order);
   renderOrderList();
   renderSequence();
+  generateSchedule();
 }
 
 
@@ -185,6 +201,7 @@ function addCustomOrder(e) {
   availableOrders.push(order);
   renderOrderList();
   if(e) e.target.reset();
+  generateSchedule();
 }
 
 function loadOrders(machine) {
@@ -196,7 +213,7 @@ function loadOrders(machine) {
       resetSchedule();
       renderOrderList();
       renderSequence();
-      renderSchedule();
+      generateSchedule();
     });
 }
 
@@ -215,6 +232,7 @@ function loadSelectedPlan(){
     plannedSequence=plan.slice();
     renderOrderList();
     renderSequence();
+    generateSchedule();
   });
 }
 
