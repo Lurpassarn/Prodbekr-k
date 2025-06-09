@@ -11,6 +11,7 @@ const schedule = {
 };
 
 let availableOrders = [];
+let plannedSequence = [];
 
 function nextShift(shift) {
   return shift === 'FM' ? 'EM' : shift === 'EM' ? 'Natt' : 'FM';
@@ -29,9 +30,26 @@ function renderOrderList() {
     const div = document.createElement('div');
     div.className = 'order-entry';
     div.innerHTML = `${o['Kundorder']} - ${o['Planerad Vikt']} kg ` +
-      `<button data-idx="${idx}">Lägg till</button>`;
-    div.querySelector('button').onclick = () => addOrder(idx);
+      `<button data-idx="${idx}">Lägg till ordning</button>`;
+    div.querySelector('button').onclick = () => addToSequence(idx);
     list.appendChild(div);
+  });
+}
+
+function renderSequence() {
+  const seq = document.getElementById('sequenceList');
+  seq.innerHTML = '';
+  plannedSequence.forEach((o, idx) => {
+    const div = document.createElement('div');
+    div.className = 'order-entry';
+    div.innerHTML = `${idx + 1}. ${o['Kundorder']} - ${o['Planerad Vikt']} kg ` +
+      `<button data-idx="${idx}" class="up">&#8679;</button>` +
+      `<button data-idx="${idx}" class="down">&#8681;</button>` +
+      `<button data-idx="${idx}" class="remove">X</button>`;
+    div.querySelector('.up').onclick = () => moveSequence(idx, -1);
+    div.querySelector('.down').onclick = () => moveSequence(idx, 1);
+    div.querySelector('.remove').onclick = () => removeFromSequence(idx);
+    seq.appendChild(div);
   });
 }
 
@@ -74,16 +92,73 @@ function scheduleOrder(order, shift) {
     weightLeft -= weight;
     if (timeLeft > 0) shift = nextShift(shift);
   }
+  return shift;
 }
 
-function addOrder(idx) {
-  const order = availableOrders[idx];
-  const shift = prompt('Lägg till i skift (FM/EM/Natt):', 'FM');
-  if (!shiftTimings[shift]) return;
-  scheduleOrder(order, shift);
-  availableOrders.splice(idx, 1);
+function addToSequence(idx) {
+  const order = availableOrders.splice(idx, 1)[0];
+  plannedSequence.push(order);
   renderOrderList();
+  renderSequence();
+}
+
+function moveSequence(idx, dir) {
+  const newIndex = idx + dir;
+  if (newIndex < 0 || newIndex >= plannedSequence.length) return;
+  const temp = plannedSequence[idx];
+  plannedSequence[idx] = plannedSequence[newIndex];
+  plannedSequence[newIndex] = temp;
+  renderSequence();
+}
+
+function removeFromSequence(idx) {
+  const order = plannedSequence.splice(idx, 1)[0];
+  availableOrders.push(order);
+  renderOrderList();
+  renderSequence();
+}
+
+function resetSchedule() {
+  ['FM','EM','Natt'].forEach(s => {
+    schedule[s].orders = [];
+    schedule[s].nextStart = shiftTimings[s].start;
+  });
+}
+
+function generateSchedule() {
+  resetSchedule();
+  let currentShift = 'FM';
+  plannedSequence.forEach(o => {
+    currentShift = scheduleOrder(o, currentShift) || currentShift;
+  });
   renderSchedule();
+}
+
+function addCustomOrder() {
+  const orderId = prompt('Kundorder:');
+  if (!orderId) return;
+  const weight = parseFloat(prompt('Planerad Vikt (kg):', '0')) || 0;
+  const gram = parseFloat(prompt('Gramvikt:', '0')) || 0;
+  const length = parseFloat(prompt('Arklängd (mm):', '0')) || 0;
+  const width = prompt('RawRollWidth (comma separated if flera):', '0');
+  const lanes = parseFloat(prompt('Antal banor:', '1')) || 1;
+  const sheetW = parseFloat(prompt('Arkbredd:', '0')) || 0;
+  const machine = document.getElementById('machineSelect').value;
+  const order = {
+    'Kundorder': orderId,
+    'Planerad Vikt': weight,
+    'Gramvikt': gram,
+    'Arklängd': length,
+    'RawRollWidth': width,
+    'Antal banor': lanes,
+    'Arkbredd': sheetW,
+    'Maskin id': machine
+  };
+  const { normalTime, saxningTime } = calculateProductionTime(order);
+  order.productionTimeNormal = normalTime;
+  order.productionTimeSaxning = saxningTime;
+  availableOrders.push(order);
+  renderOrderList();
 }
 
 function loadOrders(machine) {
@@ -91,7 +166,11 @@ function loadOrders(machine) {
     .then(r => r.json())
     .then(data => {
       availableOrders = calculateAllProductionTimes(data);
+      plannedSequence = [];
+      resetSchedule();
       renderOrderList();
+      renderSequence();
+      renderSchedule();
     });
 }
 
@@ -99,4 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const select = document.getElementById('machineSelect');
   loadOrders(select.value);
   select.addEventListener('change', () => loadOrders(select.value));
+  document.getElementById('addCustomBtn').onclick = addCustomOrder;
+  document.getElementById('generateScheduleBtn').onclick = generateSchedule;
 });
