@@ -5,9 +5,37 @@
   let pauseStartTime = 0;
   let totalPauseTime = 0;
 
+  function getSavedPlans(){
+    const data = JSON.parse(localStorage.getItem('savedPlans')||'{}');
+    return data[machineId] || {};
+  }
+
+  function populatePlanSelect(){
+    const sel = document.getElementById('planSelect');
+    if(!sel) return;
+    const plans = getSavedPlans();
+    sel.innerHTML = '<option value="">Genererad plan</option>';
+    Object.keys(plans).forEach(n=>{
+      const opt=document.createElement('option');
+      opt.value=n; opt.textContent=n; sel.appendChild(opt);
+    });
+  }
+
   async function loadOrders() {
     const response = await fetch(`${machineId}.json`);
-    const orders = await response.json();
+    let orders = await response.json();
+    const planSel = document.getElementById('planSelect');
+    if(planSel && planSel.value){
+      const plans = getSavedPlans();
+      const plan = plans[planSel.value];
+      if(plan){
+        const map = {};
+        orders.forEach(o=>map[o['Kundorder']]=o);
+        const ids=new Set();
+        orders = plan.map(p=>{ ids.add(p['Kundorder']); return map[p['Kundorder']]||p; });
+        Object.values(map).forEach(o=>{ if(!ids.has(o['Kundorder'])) orders.push(o); });
+      }
+    }
     const ordersWithTimes = calculateAllProductionTimes(orders);
     const ordersContainer = document.getElementById('ordersContainer');
     ordersContainer.innerHTML = '';
@@ -231,5 +259,10 @@
   }
 
   window.addStop=addStop;
-  document.addEventListener('DOMContentLoaded', loadOrders);
+  document.addEventListener('DOMContentLoaded', () => {
+    populatePlanSelect();
+    const sel = document.getElementById('planSelect');
+    if(sel) sel.addEventListener('change', loadOrders);
+    loadOrders();
+  });
 })();
