@@ -279,3 +279,7 @@ button:hover, .shift-btn:hover { background: #2563eb; }
 .summary-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
 .summary-header .arrow{font-size:1.5em;transition:transform 0.2s;}
 
+
+.order-entry{margin-bottom:4px;}
+.order-entry button{margin-left:8px;}
+
