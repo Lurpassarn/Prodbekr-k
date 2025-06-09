@@ -64,6 +64,7 @@
         order.productionTime = time;
         order.isSaxning = (parseFloat(order['RawRollWidth'] || '0') <= 1035 && estimateRollCount(order) >= 2);
         order.isProfitable = order.isSaxning ? (order.productionTimeSaxning < order.productionTimeNormal) : false;
+        order.speed = getMachineSpeed(machineId, parseFloat(order['Arklängd']) || 0);
         shifts[shiftKey].push(order);
         order._scheduled = true;
         shiftStart = order.endTime >= 1440 ? order.endTime - 1440 : order.endTime;
@@ -128,6 +129,8 @@
           <div class="order-summary">
             <span>${order['Kundorder'] || 'Okänd'}</span>
             <span>${(order['Planerad Vikt'] || 0).toFixed(1)} kg</span>
+            <span>${order['Arklängd'] || '?'} mm</span>
+            <span>${order.speed.toFixed(0)} m/min</span>
             <span>${formatTime(order.startTime)} - ${formatTime(order.endTime)}</span>
           </div>
           <div class="calc-result" style="display:none;"></div>`;
@@ -161,17 +164,12 @@
     }
   }
 
-  function addStop(){
-    if(!isPaused){
-      isPaused = true;
-      pauseStartTime = Date.now();
-      document.getElementById('stopInfo').textContent = 'Stopp pausat, klicka igen för att återuppta.';
-    } else {
-      const pauseEndTime = Date.now();
-      const pauseDuration = (pauseEndTime - pauseStartTime) / 60000;
-      totalPauseTime += pauseDuration;
-      isPaused = false;
-      document.getElementById('stopInfo').textContent = `Stopp återupptaget, paus: ${pauseDuration.toFixed(2)} min. Omräknat.`;
+  function addManualStop(){
+    const mins = parseFloat(prompt('Ange stopp i minuter:',''));
+    if(!isNaN(mins) && mins>0){
+      totalPauseTime += mins;
+      const info=document.getElementById('stopInfo');
+      if(info) info.textContent = `Manuellt stopp på ${mins} min inlagt.`;
       loadOrders();
     }
   }
@@ -276,11 +274,13 @@
     container.appendChild(legend);
   }
 
-  window.addStop=addStop;
+  window.addManualStop=addManualStop;
   document.addEventListener('DOMContentLoaded', () => {
     populatePlanSelect();
     const sel = document.getElementById('planSelect');
     if(sel) sel.addEventListener('change', loadOrders);
+    const stopBtn=document.getElementById('manualStopBtn');
+    if(stopBtn) stopBtn.addEventListener('click', addManualStop);
     loadOrders();
   });
 })();
