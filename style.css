@@ -302,34 +302,7 @@ button:hover, .shift-btn:hover { background: #2563eb; }
 .summary-header .arrow{font-size:1.5em;transition:transform 0.2s;}
 
 
-
-/* --- Planner (new design) --- */
-.planner-page{
-  max-width:1100px;
-  margin:30px auto;
-  padding:20px;
-  background:#fff;
-  border-radius:12px;
-  box-shadow:0 8px 30px rgba(0,0,0,0.05);
-  font-family:'Poppins', 'Inter', sans-serif;
-}
-.planner-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
-.planner-top h1{margin:0;font-size:1.8em;color:#6d28d9;}
-.back-btn{text-decoration:none;padding:8px 14px;background:#6d28d9;color:#fff;border-radius:6px;}
-.back-btn:hover{background:#5b21b6;}
-.planner-options{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
-.planner-options label{display:flex;flex-direction:column;font-weight:600;color:#374151;}
-.planner-options select{padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;}
-.primary-btn{padding:8px 16px;background:#6d28d9;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;transition:background .2s;}
-.primary-btn:hover{background:#5b21b6;}
-.planner-main{display:flex;gap:30px;flex-wrap:wrap;}
-.orders-panel,.sequence-panel{flex:1 1 320px;}
-.list-box{min-height:100px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:8px;margin-bottom:12px;box-shadow:0 2px 4px #e0e7ef;}
-.order-entry{background:#fff;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:6px;padding:6px 8px;display:flex;justify-content:space-between;align-items:center;cursor:grab;}
-.order-entry button{background:#6d28d9;border:none;color:#fff;padding:4px 8px;border-radius:4px;cursor:pointer;}
-.order-entry button:hover{background:#5b21b6;}
-.order-form{display:flex;flex-direction:column;gap:8px;}
-.order-form input{padding:8px;border:1px solid #d1d5db;border-radius:6px;}
-.plan-input{padding:8px;border:1px solid #d1d5db;border-radius:6px;width:100%;margin-bottom:8px;}
-.sequence-buttons{display:flex;gap:8px;margin-bottom:12px;}
-
+.order-entry{margin-bottom:4px;}
+.order-entry button{margin-left:8px;}
+#sequenceList .order-entry button{margin-left:4px;}
+#generateScheduleBtn,#addCustomBtn{margin-top:8px;margin-right:4px;}

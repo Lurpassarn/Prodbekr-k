@@ -47,56 +47,43 @@ function loadSavedNames(machine){
   });
 }
 
-function renderOrderList(){
-  const list=document.getElementById('orderList');
-  list.innerHTML='';
-  availableOrders.forEach((o,idx)=>{
-    const div=document.createElement('div');
-    div.className='order-entry';
-    div.textContent=`${o['Kundorder']} - ${o['Planerad Vikt']} kg`;
-    const btn=document.createElement('button');
-    btn.textContent='+';
-    btn.onclick=()=>addToSequence(idx);
-    div.appendChild(btn);
+function renderOrderList() {
+  const list = document.getElementById('orderList');
+  list.innerHTML = '';
+  availableOrders.forEach((o, idx) => {
+    const div = document.createElement('div');
+    div.className = 'order-entry';
+    div.innerHTML = `${o['Kundorder']} - ${o['Planerad Vikt']} kg ` +
+      `<button data-idx="${idx}">Lägg till ordning</button>`;
+    div.querySelector('button').onclick = () => addToSequence(idx);
     list.appendChild(div);
   });
 }
 
-function renderSequence(){
-  const seq=document.getElementById('sequenceList');
-  seq.innerHTML='';
-  plannedSequence.forEach((o,idx)=>{
-    const div=document.createElement('div');
-    div.className='order-entry';
-    div.draggable=true;
-    div.dataset.index=idx;
-    div.textContent=`${idx+1}. ${o['Kundorder']} - ${o['Planerad Vikt']} kg`;
-    const rem=document.createElement('button');
-    rem.textContent='X';
-    rem.onclick=()=>removeFromSequence(idx);
-    div.appendChild(rem);
-    div.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',idx);});
-    div.addEventListener('dragover',e=>e.preventDefault());
-    div.addEventListener('drop',e=>{
-      e.preventDefault();
-      const from=parseInt(e.dataTransfer.getData('text/plain'),10);
-      const to=idx;
-      if(from===to) return;
-      const itm=plannedSequence.splice(from,1)[0];
-      plannedSequence.splice(to,0,itm);
-      renderSequence();
-    });
+function renderSequence() {
+  const seq = document.getElementById('sequenceList');
+  seq.innerHTML = '';
+  plannedSequence.forEach((o, idx) => {
+    const div = document.createElement('div');
+    div.className = 'order-entry';
+    div.innerHTML = `${idx + 1}. ${o['Kundorder']} - ${o['Planerad Vikt']} kg ` +
+      `<button data-idx="${idx}" class="up">&#8679;</button>` +
+      `<button data-idx="${idx}" class="down">&#8681;</button>` +
+      `<button data-idx="${idx}" class="remove">X</button>`;
+    div.querySelector('.up').onclick = () => moveSequence(idx, -1);
+    div.querySelector('.down').onclick = () => moveSequence(idx, 1);
+    div.querySelector('.remove').onclick = () => removeFromSequence(idx);
     seq.appendChild(div);
   });
 }
 
-function renderSchedule(){
-  const container=document.getElementById('scheduleContainer');
-  container.innerHTML='';
-  Object.keys(schedule).forEach(shift=>{
-    const s=schedule[shift];
-    const h=document.createElement('h3');
-    h.textContent=shift;
+function renderSchedule() {
+  const container = document.getElementById('scheduleContainer');
+  container.innerHTML = '';
+  Object.keys(schedule).forEach(shift => {
+    const s = schedule[shift];
+    const h = document.createElement('h3');
+    h.textContent = shift + '-skift';
     container.appendChild(h);
     const ul=document.createElement('ul');
     s.orders.forEach(o=>{
@@ -130,68 +117,81 @@ function scheduleOrder(order,shift){
   return shift;
 }
 
-function addToSequence(idx){
-  const order=availableOrders.splice(idx,1)[0];
+
+function addToSequence(idx) {
+  const order = availableOrders.splice(idx, 1)[0];
   plannedSequence.push(order);
   renderOrderList();
   renderSequence();
 }
 
-function removeFromSequence(idx){
-  const o=plannedSequence.splice(idx,1)[0];
-  availableOrders.push(o);
+function moveSequence(idx, dir) {
+  const newIndex = idx + dir;
+  if (newIndex < 0 || newIndex >= plannedSequence.length) return;
+  const temp = plannedSequence[idx];
+  plannedSequence[idx] = plannedSequence[newIndex];
+  plannedSequence[newIndex] = temp;
+  renderSequence();
+}
+
+function removeFromSequence(idx) {
+  const order = plannedSequence.splice(idx, 1)[0];
+  availableOrders.push(order);
   renderOrderList();
   renderSequence();
 }
 
-function resetSchedule(){
-  ['FM','EM','Natt'].forEach(s=>{schedule[s].orders=[];schedule[s].nextStart=shiftTimings[s].start;});
+
+function resetSchedule() {
+  ['FM','EM','Natt'].forEach(s => {
+    schedule[s].orders = [];
+    schedule[s].nextStart = shiftTimings[s].start;
+  });
 }
 
-function generateSchedule(){
+function generateSchedule() {
   resetSchedule();
-  let current='FM';
-  plannedSequence.forEach(o=>{current=scheduleOrder(o,current)||current;});
+  let currentShift = 'FM';
+  plannedSequence.forEach(o => {
+    currentShift = scheduleOrder(o, currentShift) || currentShift;
+  });
   renderSchedule();
 }
 
-function addCustomOrder(e){
-  e.preventDefault();
-  const machine=document.getElementById('machineSelect').value;
-  const order={
-    'Kundorder':document.getElementById('coId').value,
-    'Planerad Vikt':parseFloat(document.getElementById('coWeight').value)||0,
-    'Gramvikt':parseFloat(document.getElementById('coGram').value)||0,
-    'Arklängd':parseFloat(document.getElementById('coLen').value)||0,
-    'RawRollWidth':document.getElementById('coWidth').value,
-    'Antal banor':parseFloat(document.getElementById('coLanes').value)||1,
-    'Arkbredd':parseFloat(document.getElementById('coSheet').value)||0,
-    'Maskin id':machine
+function addCustomOrder() {
+  const orderId = prompt('Kundorder:');
+  if (!orderId) return;
+  const weight = parseFloat(prompt('Planerad Vikt (kg):', '0')) || 0;
+  const gram = parseFloat(prompt('Gramvikt:', '0')) || 0;
+  const length = parseFloat(prompt('Arklängd (mm):', '0')) || 0;
+  const width = prompt('RawRollWidth (comma separated if flera):', '0');
+  const lanes = parseFloat(prompt('Antal banor:', '1')) || 1;
+  const sheetW = parseFloat(prompt('Arkbredd:', '0')) || 0;
+  const machine = document.getElementById('machineSelect').value;
+  const order = {
+    'Kundorder': orderId,
+    'Planerad Vikt': weight,
+    'Gramvikt': gram,
+    'Arklängd': length,
+    'RawRollWidth': width,
+    'Antal banor': lanes,
+    'Arkbredd': sheetW,
+    'Maskin id': machine
   };
-  const times=calculateProductionTime(order);
-  order.productionTimeNormal=times.normalTime;
-  order.productionTimeSaxning=times.saxningTime;
+  const { normalTime, saxningTime } = calculateProductionTime(order);
+  order.productionTimeNormal = normalTime;
+  order.productionTimeSaxning = saxningTime;
   availableOrders.push(order);
-  document.getElementById('customOrderForm').reset();
   renderOrderList();
 }
 
-function saveCurrentPlan(){
-  const name=document.getElementById('planName').value.trim();
-  const machine=document.getElementById('machineSelect').value;
-  if(!name) return;
-  savePlan(machine,name,plannedSequence.slice());
-  loadSavedNames(machine);
-}
-
-function loadOrders(machine){
-  return fetch(machine+'.json')
-    .then(r=>r.json())
-    .then(data=>{
-      availableOrders=calculateAllProductionTimes(data);
-      plannedSequence=[];
+function loadOrders(machine) {
+  fetch(machine + '.json')
+    .then(r => r.json())
+    .then(data => {
+      availableOrders = calculateAllProductionTimes(data);
+      plannedSequence = [];
       resetSchedule();
-      loadSavedNames(machine);
       renderOrderList();
       renderSequence();
       renderSchedule();
@@ -205,7 +205,6 @@ function loadSelectedPlan(){
   const plan=getSaved(machine)[name];
   if(!plan) return;
   loadOrders(machine).then(()=>{
-    // remove duplicates from available orders
     plan.forEach(p=>{
       const idx=availableOrders.findIndex(o=>o['Kundorder']===p['Kundorder']);
       if(idx>-1) availableOrders.splice(idx,1);
@@ -219,9 +218,7 @@ function loadSelectedPlan(){
 document.addEventListener('DOMContentLoaded',()=>{
   const select=document.getElementById('machineSelect');
   loadOrders(select.value);
-  select.addEventListener('change',()=>loadOrders(select.value));
-  document.getElementById('customOrderForm').addEventListener('submit',addCustomOrder);
-  document.getElementById('generateScheduleBtn').onclick=generateSchedule;
-  document.getElementById('savePlanBtn').onclick=saveCurrentPlan;
-  document.getElementById('loadPlanBtn').onclick=loadSelectedPlan;
+  select.addEventListener('change', () => loadOrders(select.value));
+  document.getElementById('addCustomBtn').onclick = addCustomOrder;
+  document.getElementById('generateScheduleBtn').onclick = generateSchedule;
 });

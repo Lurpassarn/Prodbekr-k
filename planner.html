@@ -3,34 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <title>Planerare</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+=======
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="planner-page">
-    <header class="planner-top">
-      <h1>Orderplanerare</h1>
-      <a href="index.html" class="back-btn">Till startsidan</a>
+  <div class="container planner-container">
+    <header class="planner-header">
+      <h1>Manuell Plannerare</h1>
+      <a href="index.html" class="nav-button">Tillbaka</a>
     </header>
-    <div class="planner-options">
-      <label>Välj maskin
+    <div class="planner-controls">
+      <label>Maskin:
         <select id="machineSelect">
           <option value="SM25">SM25</option>
           <option value="SM27">SM27</option>
           <option value="SM28" selected>SM28</option>
         </select>
       </label>
-      <label>Sparade planer
+      <label>Sparade planer:
         <select id="savedPlans"></select>
       </label>
-      <button id="loadPlanBtn" class="primary-btn">Öppna</button>
+      <button id="loadPlanBtn" class="small-btn">Ladda</button>
     </div>
-    <main class="planner-main">
-      <div class="orders-panel">
-        <h2>Ordrar</h2>
-        <div id="orderList" class="list-box"></div>
-        <form id="customOrderForm" class="order-form">
-          <h3>Ny order</h3>
+    <div class="planner-columns">
+      <div class="planner-left">
+        <h2>Tillgängliga ordrar</h2>
+        <div id="orderList" class="order-list"></div>
+        <form id="customOrderForm" class="custom-form">
+          <h3>Lägg till egen order</h3>
           <input id="coId" placeholder="Kundorder" required>
           <input id="coWeight" type="number" step="any" placeholder="Vikt (kg)" required>
           <input id="coGram" type="number" step="any" placeholder="Gramvikt" required>
@@ -38,21 +39,19 @@
           <input id="coWidth" placeholder="RawRollWidth">
           <input id="coLanes" type="number" step="any" placeholder="Antal banor" value="1">
           <input id="coSheet" type="number" step="any" placeholder="Arkbredd">
-          <button type="submit" class="primary-btn">Lägg till order</button>
+          <button type="submit" class="small-btn">Lägg till</button>
         </form>
       </div>
-      <div class="sequence-panel">
+      <div class="planner-right">
         <h2>Planerad ordning</h2>
-        <div id="sequenceList" class="list-box"></div>
-        <input id="planName" placeholder="Planens namn" class="plan-input">
-        <div class="sequence-buttons">
-          <button id="savePlanBtn" class="primary-btn">Spara plan</button>
-          <button id="generateScheduleBtn" class="primary-btn">Skapa schema</button>
-        </div>
-        <h2>Schema</h2>
-        <div id="scheduleContainer" class="list-box"></div>
+        <div id="sequenceList" class="sequence-list"></div>
+        <input id="planName" placeholder="Namnge plan" class="plan-name">
+        <button id="savePlanBtn" class="small-btn">Spara plan</button>
+        <button id="generateScheduleBtn" class="small-btn">Generera schema</button>
+        <h2>Planerat schema</h2>
+        <div id="scheduleContainer"></div>
       </div>
-    </main>
+    </div>
   </div>
   <script src="production.js"></script>
   <script src="planner.js"></script>
