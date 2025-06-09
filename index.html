@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Produktionsöversikt</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -104,29 +104,16 @@
             const container = document.getElementById('machineSummaries');
             container.innerHTML = '';
             const shiftNames = { FM: 'FM', EM: 'EM', Natt: 'Natt' };
-            // Skapa en horisontell rad med maskiner
             const row = document.createElement('div');
-            row.style.display = 'flex';
-            row.style.gap = '32px';
-            row.style.justifyContent = 'center';
-            row.style.margin = '32px 0 0 0';
+            row.className = 'summary-row';
             machines.forEach(machine => {
                 const data = summaries[machine];
                 const div = document.createElement('div');
                 div.className = 'summary-item summary-collapsible';
-                div.style.flex = '1 1 0';
-                div.style.minWidth = '220px';
-                div.style.cursor = 'pointer';
-                div.style.transition = 'box-shadow 0.2s';
-                div.style.boxShadow = '0 2px 8px #e0e7ef';
-                div.style.borderRadius = '12px';
-                div.style.background = '#fff';
-                div.style.padding = '18px 18px 10px 18px';
-                div.style.position = 'relative';
                 // Totalt över dygnet box
                 const total = data.totalDygn;
                 const totalBox = `
-                    <div class="summary-total-dygn" style="background:#2563eb;color:#fff;border-radius:10px;padding:14px 18px 10px 18px;margin-bottom:12px;box-shadow:0 2px 8px #b6d0fa;">
+                    <div class="summary-total-dygn">
                         <div style="font-size:1.13em;font-weight:700;letter-spacing:1px;">Totalt över dygnet</div>
                         <div style="margin-top:6px;font-size:1.08em;">
                             Ordrar: <b>${total.totalOrders}</b><br>
@@ -136,9 +123,9 @@
                     </div>
                 `;
                 div.innerHTML = `
-                    <div class="summary-header" style="display:flex;align-items:center;justify-content:space-between;">
+                    <div class="summary-header">
                         <h3 style="margin:0">${machine}</h3>
-                        <span class="arrow" style="font-size:1.5em;transition:transform 0.2s;">&#9654;</span>
+                        <span class="arrow">&#9654;</span>
                     </div>
                     ${totalBox}
                     <div class="summary-main">
@@ -156,7 +143,7 @@
                             return (totalOutput/24).toFixed(2);
                         })()}
                     </div>
-                    <div class="summary-shifts" style="display:none;margin-top:12px;">
+                    <div class="summary-shifts">
                         ${Object.keys(data.shifts).map(shift => {
                             const s = data.shifts[shift];
                             return `
@@ -175,20 +162,16 @@
                     document.querySelectorAll('.summary-collapsible').forEach(box => {
                         if (box !== div) {
                             box.querySelector('.summary-shifts').style.display = 'none';
-                            box.querySelector('.arrow').style.transform = 'rotate(0deg)';
-                            box.style.boxShadow = '0 2px 8px #e0e7ef';
+                            box.classList.remove('active');
                         }
                     });
                     const shiftsDiv = div.querySelector('.summary-shifts');
-                    const arrow = div.querySelector('.arrow');
                     if (shiftsDiv.style.display === 'block') {
                         shiftsDiv.style.display = 'none';
-                        arrow.style.transform = 'rotate(0deg)';
-                        div.style.boxShadow = '0 2px 8px #e0e7ef';
+                        div.classList.remove('active');
                     } else {
                         shiftsDiv.style.display = 'block';
-                        arrow.style.transform = 'rotate(90deg)';
-                        div.style.boxShadow = '0 4px 18px #b6d0fa';
+                        div.classList.add('active');
                     }
                     e.stopPropagation();
                 });
