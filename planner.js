@@ -53,8 +53,10 @@ function renderOrderList() {
   availableOrders.forEach((o, idx) => {
     const div = document.createElement('div');
     div.className = 'order-entry';
-    div.innerHTML = `${o['Kundorder']} - ${o['Planerad Vikt']} kg ` +
-      `<button data-idx="${idx}">Lägg till ordning</button>`;
+    div.innerHTML = `
+      <span>${o['Kundorder']}</span>
+      <span>${(o['Planerad Vikt'] || 0).toFixed(1)} kg</span>
+      <button data-idx="${idx}" class="small-btn">+</button>`;
     div.querySelector('button').onclick = () => addToSequence(idx);
     list.appendChild(div);
   });
