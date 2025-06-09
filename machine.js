@@ -74,6 +74,17 @@
     }
 
     const shiftNames = { FM: 'FM-Skift', EM: 'EM-Skift', Natt: 'Natt-Skift' };
+
+    function analyzeShiftOrders(list){
+      const issues = [];
+      const weights = list.map(o=>parseFloat(o['Planerad Vikt']||0));
+      const smallOrders = weights.filter(w=>w && w<1000).length;
+      if(list.length>8) issues.push('Många ordrar kan ge långa omställningar');
+      if(smallOrders>list.length/2) issues.push('Hög andel små ordrar (<1 ton)');
+      const lengths = new Set(list.map(o=>parseFloat(o['Arklängd'])||0));
+      if(lengths.size>3) issues.push('Stor variation i arklängd');
+      return issues;
+    }
     Object.keys(shifts).forEach(shift => {
       const btn = document.createElement('button');
       btn.className = 'shift-toggle';
@@ -100,25 +111,32 @@
       shiftDiv.id = 'section-' + shift;
       shiftDiv.style.display = 'none';
 
-      const ordersGrid = document.createElement('div');
-      ordersGrid.className = 'orders-grid';
+      const analysis = analyzeShiftOrders(shifts[shift]);
+      if(analysis.length){
+        const aBox=document.createElement('div');
+        aBox.className='analysis-box';
+        aBox.innerHTML='<b>Analys:</b><ul>'+analysis.map(t=>`<li>${t}</li>`).join('')+'</ul>';
+        shiftDiv.appendChild(aBox);
+      }
+
+      const ordersList = document.createElement('div');
+      ordersList.className = 'orders-list';
       shifts[shift].forEach(order => {
         const orderDiv = document.createElement('div');
-        orderDiv.className = 'order-box';
+        orderDiv.className = 'order-row';
         orderDiv.innerHTML = `
-          <h3>Order: ${order['Kundorder'] || 'Okänd'}</h3>
-          <p>Planerad start: ${formatTime(order.startTime)}</p>
-          <p>Färdig ca: ${formatTime(order.endTime)}</p>
-          <p>Totalt tidsåtgång: ${order.adjustedTime.toFixed(2)} min</p>
-          <p>Planerad Vikt: ${(order['Planerad Vikt'] || 0).toFixed(2)} kg</p>
-          <button class="show-calc-btn">Visa Uträkning</button>
+          <div class="order-summary">
+            <span>${order['Kundorder'] || 'Okänd'}</span>
+            <span>${(order['Planerad Vikt'] || 0).toFixed(1)} kg</span>
+            <span>${formatTime(order.startTime)} - ${formatTime(order.endTime)}</span>
+          </div>
           <div class="calc-result" style="display:none;"></div>`;
-        orderDiv.querySelector('.show-calc-btn').addEventListener('click', function(){
+        orderDiv.querySelector('.order-summary').addEventListener('click', function(){
           showOrderCalculation(this, order, machineId);
         });
-        ordersGrid.appendChild(orderDiv);
+        ordersList.appendChild(orderDiv);
       });
-      shiftDiv.appendChild(ordersGrid);
+      shiftDiv.appendChild(ordersList);
       ordersContainer.appendChild(shiftDiv);
     });
 

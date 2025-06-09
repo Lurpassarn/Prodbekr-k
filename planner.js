@@ -158,15 +158,16 @@ function generateSchedule() {
   renderSchedule();
 }
 
-function addCustomOrder() {
-  const orderId = prompt('Kundorder:');
+function addCustomOrder(e) {
+  if(e) e.preventDefault();
+  const orderId = document.getElementById('coId').value.trim();
   if (!orderId) return;
-  const weight = parseFloat(prompt('Planerad Vikt (kg):', '0')) || 0;
-  const gram = parseFloat(prompt('Gramvikt:', '0')) || 0;
-  const length = parseFloat(prompt('Arklängd (mm):', '0')) || 0;
-  const width = prompt('RawRollWidth (comma separated if flera):', '0');
-  const lanes = parseFloat(prompt('Antal banor:', '1')) || 1;
-  const sheetW = parseFloat(prompt('Arkbredd:', '0')) || 0;
+  const weight = parseFloat(document.getElementById('coWeight').value) || 0;
+  const gram = parseFloat(document.getElementById('coGram').value) || 0;
+  const length = parseFloat(document.getElementById('coLen').value) || 0;
+  const width = document.getElementById('coWidth').value || '';
+  const lanes = parseFloat(document.getElementById('coLanes').value) || 1;
+  const sheetW = parseFloat(document.getElementById('coSheet').value) || 0;
   const machine = document.getElementById('machineSelect').value;
   const order = {
     'Kundorder': orderId,
@@ -183,6 +184,7 @@ function addCustomOrder() {
   order.productionTimeSaxning = saxningTime;
   availableOrders.push(order);
   renderOrderList();
+  if(e) e.target.reset();
 }
 
 function loadOrders(machine) {
@@ -218,7 +220,16 @@ function loadSelectedPlan(){
 document.addEventListener('DOMContentLoaded',()=>{
   const select=document.getElementById('machineSelect');
   loadOrders(select.value);
-  select.addEventListener('change', () => loadOrders(select.value));
-  document.getElementById('addCustomBtn').onclick = addCustomOrder;
+  loadSavedNames(select.value);
+  select.addEventListener('change', () => { loadOrders(select.value); loadSavedNames(select.value); });
+  document.getElementById('savePlanBtn').onclick = () => {
+    const name=document.getElementById('planName').value.trim();
+    if(!name){ alert('Ange namn f\u00f6r planen'); return; }
+    savePlan(select.value,name,plannedSequence);
+    loadSavedNames(select.value);
+    alert('Plan sparad');
+  };
+  document.getElementById('loadPlanBtn').onclick = loadSelectedPlan;
+  document.getElementById('customOrderForm').addEventListener('submit', addCustomOrder);
   document.getElementById('generateScheduleBtn').onclick = generateSchedule;
 });
