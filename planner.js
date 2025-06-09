@@ -186,7 +186,7 @@ function addCustomOrder() {
 }
 
 function loadOrders(machine) {
-  fetch(machine + '.json')
+  return fetch(machine + '.json')
     .then(r => r.json())
     .then(data => {
       availableOrders = calculateAllProductionTimes(data);
@@ -205,6 +205,7 @@ function loadSelectedPlan(){
   const plan=getSaved(machine)[name];
   if(!plan) return;
   loadOrders(machine).then(()=>{
+    document.getElementById('savedPlans').value = name;
     plan.forEach(p=>{
       const idx=availableOrders.findIndex(o=>o['Kundorder']===p['Kundorder']);
       if(idx>-1) availableOrders.splice(idx,1);
