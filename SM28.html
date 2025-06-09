@@ -8,13 +8,31 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body data-machine="SM28">
-    <div class="container">
-        <h1>SM28 Produktionsplan</h1>
-        <div id="shiftBarContainer"></div>
-        <div id="ordersContainer"></div>
-        <a href="index.html" class="back-button">Tillbaka till översikt</a>
+    <div class="sm25-app">
+        <aside class="sm25-sidebar">
+            <div class="sm25-logo">SM28</div>
+            <nav>
+                <a href="index.html" class="sidebar-link">&#8592; Tillbaka till översikt</a>
+            </nav>
+            <div class="shift-sidebar">
+                <h2>Välj skift</h2>
+                <div class="shift-list">
+                    <button class="shift-btn sm25-shift-btn" data-shift="FM">FM-Skift</button>
+                    <button class="shift-btn sm25-shift-btn" data-shift="EM">EM-Skift</button>
+                    <button class="shift-btn sm25-shift-btn" data-shift="Natt">Natt-Skift</button>
+                </div>
+            </div>
+        </aside>
+        <main class="sm25-main">
+            <header class="sm25-header">
+                <h1>SM28 Produktionsplan</h1>
+                <p class="sm25-sub">Planering och uträkning för dagens produktion. Välj skift i sidomenyn.</p>
+            </header>
+            <div id="shiftBarContainer"></div>
+            <div id="ordersContainer"></div>
+        </main>
     </div>
-    <div class="guidance">
+    <div class="guidance machine-guidance">
         <p><strong>Övrigt att tänka på:</strong> Tider baseras på "Arklängd" och "RawRollWidth".</p>
     </div>
     <script src="production.js"></script>
