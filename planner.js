@@ -47,6 +47,11 @@ function loadSavedNames(machine){
   });
 }
 
+function formatDuration(mins){
+  const h=Math.floor(mins/60);const m=Math.round(mins%60);
+  return h>0?`${h}h ${m}m`:`${m}m`;
+}
+
 function renderOrderList() {
   const list = document.getElementById('orderList');
   list.innerHTML = '';
@@ -54,9 +59,10 @@ function renderOrderList() {
     const div = document.createElement('div');
     div.className = 'order-entry';
     div.innerHTML = `
-      <span>${o['Kundorder']}</span>
-      <span>${(o['Planerad Vikt'] || 0).toFixed(1)} kg</span>
-      <button data-idx="${idx}" class="small-btn">+</button>`;
+      <span class="order-id">${o['Kundorder']}</span>
+      <span class="weight">${(o['Planerad Vikt'] || 0).toFixed(1)} kg</span>
+      <span class="duration">${formatDuration(o.productionTimeNormal)}</span>
+      <button data-idx="${idx}" class="small-btn icon-btn">+</button>`;
     div.querySelector('button').onclick = () => addToSequence(idx);
     list.appendChild(div);
   });
@@ -70,9 +76,9 @@ function renderSequence() {
     div.className = 'order-entry';
     div.draggable = true;
     div.innerHTML = `${idx + 1}. ${o['Kundorder']} - ${o['Planerad Vikt']} kg ` +
-      `<button data-idx="${idx}" class="up">&#8679;</button>` +
-      `<button data-idx="${idx}" class="down">&#8681;</button>` +
-      `<button data-idx="${idx}" class="remove">X</button>`;
+      `<button data-idx="${idx}" class="small-btn icon-btn up">&#8679;</button>` +
+      `<button data-idx="${idx}" class="small-btn icon-btn down">&#8681;</button>` +
+      `<button data-idx="${idx}" class="small-btn icon-btn remove">X</button>`;
     div.querySelector('.up').onclick = () => moveSequence(idx, -1);
     div.querySelector('.down').onclick = () => moveSequence(idx, 1);
     div.querySelector('.remove').onclick = () => removeFromSequence(idx);

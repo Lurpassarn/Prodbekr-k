@@ -150,7 +150,7 @@ html, body {
   gap: 6px;
 }
 .order-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.order-icon { font-size: 1.3em; color: #2563eb; }
+.order-icon { font-size: 1.1em; color: #2563eb; }
 .order-card-row { display: flex; justify-content: space-between; font-size: 1em; }
 .order-label { color: #2563eb; font-weight: 600; margin-right: 6px; }
 
@@ -192,8 +192,8 @@ html, body {
   color: #2563eb;
 }
 .calc-step-arrow, .calc-step-arrow-big {
-  font-size: 1.2em;
-  margin-left: 8px;
+  font-size: 1em;
+  margin-left: 6px;
   transition: transform 0.2s;
 }
 .calc-step-content, .calc-step-content-big {
@@ -236,6 +236,10 @@ button:hover, .shift-btn:hover { background: #4338ca; }
   padding:6px 10px;
   font-size:0.9em;
   margin-top:0;
+}
+.icon-btn{
+  padding:4px 6px;
+  font-size:0.8em;
 }
 
 /* --- Shiftval Sidebar --- */
@@ -302,7 +306,7 @@ button:hover, .shift-btn:hover { background: #4338ca; }
 /* --- Machine page elements --- */
 .shift-bar { display:flex; justify-content:center; gap:24px; margin:32px 0 16px 0; }
 .shift-toggle { position:relative; font-weight:600; letter-spacing:0.5px; box-shadow:0 2px 8px #e0e7ef, 0 0 0 2px #3b82f6 inset; }
-.shift-toggle .shift-arrow { font-size:1.2em; margin-right:8px; transition:transform 0.2s; }
+.shift-toggle .shift-arrow { font-size:1em; margin-right:6px; transition:transform 0.2s; }
 .shift-toggle.active-shift .shift-arrow { transform:rotate(90deg); }
 .shift-toggle::after { content:'Klicka för att visa'; display:block; font-size:0.85em; color:#2563eb; margin-top:2px; font-weight:400; letter-spacing:0; }
 .shift-wrapper { background:#f4f7fb; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:32px; padding:24px; }
@@ -330,11 +334,18 @@ button:hover, .shift-btn:hover { background: #4338ca; }
 }
 
 .summary-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
-.summary-header .arrow{font-size:1.5em;transition:transform 0.2s;}
+.summary-header .arrow{font-size:1.2em;transition:transform 0.2s;}
 
 
 #sequenceList .order-entry button{margin-left:4px;}
 #orderList .order-entry button{margin-left:8px;}
+#orderList .order-entry{
+  display:grid;
+  grid-template-columns:1fr 70px 70px auto;
+  align-items:center;
+}
+
+
 .order-entry{
   display:flex;
   align-items:center;
@@ -347,6 +358,11 @@ button:hover, .shift-btn:hover { background: #4338ca; }
   gap:6px;
   margin-bottom:4px;
   box-shadow:0 1px 2px rgba(0,0,0,0.05);
+}
+
+#orderList .order-entry .weight,#orderList .order-entry .duration{
+  width:70px;
+  text-align:right;
 }
 #orderList{
   gap:4px;
