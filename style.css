@@ -307,16 +307,3 @@ button:hover, .shift-btn:hover { background: #2563eb; }
 #sequenceList .order-entry button{margin-left:4px;}
 #generateScheduleBtn,#addCustomBtn{margin-top:8px;margin-right:4px;}
 
-/* --- Planner --- */
-.planner-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
-.planner-controls{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
-.planner-columns{display:flex;gap:20px;flex-wrap:wrap;}
-.planner-left,.planner-right{flex:1 1 300px;}
-.order-list,.sequence-list{min-height:80px;padding:8px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;box-shadow:0 2px 4px #e0e7ef;margin-bottom:12px;}
-.order-entry{background:#f8fafc;padding:6px 8px;border-radius:6px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;cursor:grab;}
-.custom-form{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
-.custom-form input{padding:6px;border:1px solid #d1d5db;border-radius:6px;}
-.small-btn{padding:6px 12px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;}
-.small-btn:hover{background:#1e40af;}
-.plan-name{margin-bottom:8px;padding:6px;border:1px solid #d1d5db;border-radius:6px;width:100%;}
-
