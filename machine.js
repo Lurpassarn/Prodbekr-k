@@ -355,9 +355,13 @@
       const list=document.createElement("div");
       list.className="orders-list";
       list.dataset.shift=shift;
-      list.addEventListener("dragover",e=>e.preventDefault());
+      list.addEventListener("dragover",e=>{
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+      });
       list.addEventListener("drop",e=>{
         e.preventDefault();
+        e.stopPropagation();
         const fromShift=e.dataTransfer.getData("shift");
         const fromIdx=parseInt(e.dataTransfer.getData("index"),10);
         if(!fromShift) return;
@@ -373,8 +377,32 @@
         d.dataset.index=idx;
         d.draggable=true;
         d.addEventListener("dragstart",ev=>{
-          ev.dataTransfer.setData("shift",shift);
-          ev.dataTransfer.setData("index",idx);
+          ev.dataTransfer.effectAllowed = "move";
+          // Some browsers require text data for drag to start
+          ev.dataTransfer.setData("text/plain", "");
+          ev.dataTransfer.setData("shift", shift);
+          ev.dataTransfer.setData("index", idx);
+        });
+        d.addEventListener("dragover",ev=>{
+          ev.preventDefault();
+          ev.dataTransfer.dropEffect = "move";
+          d.classList.add("drag-over");
+        });
+        d.addEventListener("dragleave",()=>{ d.classList.remove("drag-over"); });
+        d.addEventListener("drop",ev=>{
+          ev.preventDefault();
+          ev.stopPropagation();
+          ev.dataTransfer.dropEffect = "move";
+          d.classList.remove("drag-over");
+          const fromShift=ev.dataTransfer.getData("shift");
+          const fromIdx=parseInt(ev.dataTransfer.getData("index"),10);
+          if(!fromShift) return;
+          let toIdx=parseInt(d.dataset.index,10);
+          const item=currentShifts[fromShift].splice(fromIdx,1)[0];
+          if(fromShift===shift && fromIdx<toIdx) toIdx--;
+          currentShifts[shift].splice(toIdx,0,item);
+          recalcSchedule();
+          renderPage();
         });
         d.addEventListener("dragover",ev=>{ ev.preventDefault(); d.classList.add("drag-over"); });
         d.addEventListener("dragleave",()=>{ d.classList.remove("drag-over"); });
