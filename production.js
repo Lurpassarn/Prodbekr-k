@@ -38,7 +38,7 @@ const machineSpeedCurves = {
 
 // Funktion för att interpolera hastighet baserat på arkstorlek med linjär interpolation
 function getMachineSpeed (machineId, sheetLength) {
-  const curve = machineSpeedCurves[machineId] || machineSpeedCurves['SM28'];
+  const curve = machineSpeedCurves[machineId] || machineSpeedCurves["SM28"];
   if (!sheetLength || sheetLength < curve[0].size) return curve[0].speed;
   if (sheetLength >= curve[curve.length - 1].size)
     return curve[curve.length - 1].speed;
@@ -58,30 +58,30 @@ function getMachineSpeed (machineId, sheetLength) {
 // Funktion för att uppskatta antalet rullar med validering mot Planerad Vikt
 function estimateRollCount (order) {
   const reservedWeight =
-    parseFloat(order['Reserverad Vikt'] || '0')
+    parseFloat(order["Reserverad Vikt"] || "0")
       .toString()
-      .replace(/\s/g, '') || 0;
+      .replace(/\s/g, "") || 0;
   const plannedWeight =
-    parseFloat(order['Planerad Vikt'] || '0')
+    parseFloat(order["Planerad Vikt"] || "0")
       .toString()
-      .replace(/\s/g, '') || 0;
-  const gramvikt = parseFloat(order['Gramvikt']) || 0;
-  const rawRollWidthStr = order['RawRollWidth'] || '';
+      .replace(/\s/g, "") || 0;
+  const gramvikt = parseFloat(order["Gramvikt"]) || 0;
+  const rawRollWidthStr = order["RawRollWidth"] || "";
   const rawRollWidths = rawRollWidthStr
-    .split(',')
+    .split(",")
     .map(x => parseFloat(x.trim()) || 0)
     .filter(w => w > 0);
   const numUniqueWidths = new Set(rawRollWidths).size;
   const maxRawRollWidth = Math.max(...rawRollWidths, 0);
-  const sheetLength = parseFloat(order['Arklängd']) || 0;
-  const lanes = parseFloat(order['Antal banor']) || 1;
-  const expectedWidth = parseFloat(order['Arkbredd']) || 0;
+  const sheetLength = parseFloat(order["Arklängd"]) || 0;
+  const lanes = parseFloat(order["Antal banor"]) || 1;
+  const expectedWidth = parseFloat(order["Arkbredd"]) || 0;
 
   // Parsa "Rullar" för både tillgängliga och allokerade rullar
-  const rollsStr = order['Rullar'] || '';
+  const rollsStr = order["Rullar"] || "";
   const [availableRollsStr, allocatedRollsStr] = rollsStr
-    .split('(')
-    .map(s => s.replace(')', ''));
+    .split("(")
+    .map(s => s.replace(")", ""));
   const availableRolls = parseInt(availableRollsStr) || 0;
   const allocatedRolls = parseInt(allocatedRollsStr) || 0;
 
@@ -91,7 +91,7 @@ function estimateRollCount (order) {
     const avgRollWeight = reservedWeight / rolls;
     console.log(
       `Snittvikt per rulle för ${
-        order['Kundorder'] || 'okänd'
+        order["Kundorder"] || "okänd"
       }: ${avgRollWeight} kg (baserat på Reserverad Vikt)`
     );
   } else if (plannedWeight > 0 && (availableRolls > 0 || allocatedRolls > 0)) {
@@ -111,7 +111,7 @@ function estimateRollCount (order) {
     const avgRollWeight = adjustedPlannedWeight / rolls;
     console.log(
       `Uppskattad snittvikt per rulle för ${
-        order['Kundorder'] || 'okänd'
+        order["Kundorder"] || "okänd"
       }: ${avgRollWeight} kg (baserat på Planerad Vikt + 10%)`
     );
   } else if (plannedWeight > 0) {
@@ -131,7 +131,7 @@ function estimateRollCount (order) {
     const avgRollWeight = adjustedPlannedWeight / rolls;
     console.log(
       `Uppskattad snittvikt per rulle för ${
-        order['Kundorder'] || 'okänd'
+        order["Kundorder"] || "okänd"
       }: ${avgRollWeight} kg (baserat på Planerad Vikt + 10% och vikt/breddregel)`
     );
   } else {
@@ -148,7 +148,7 @@ function estimateRollCount (order) {
       : 1;
   if (spillFactor < 0.5)
     console.warn(
-      `Hög spillfaktor för order ${order['Kundorder'] || 'okänd'}:`,
+      `Hög spillfaktor för order ${order["Kundorder"] || "okänd"}:`,
       spillFactor
     );
 
@@ -157,8 +157,8 @@ function estimateRollCount (order) {
 
 // Funktion för att beräkna stopptid för normal drift och saxning
 function calculateStopTimes (order) {
-  const machineId = order['Maskin id'] || 'SM28';
-  const rawRollWidth = parseFloat(order['RawRollWidth'].split(',')[0]) || 0;
+  const machineId = order["Maskin id"] || "SM28";
+  const rawRollWidth = parseFloat(order["RawRollWidth"].split(",")[0]) || 0;
   const rolls = estimateRollCount(order);
 
   // Normal drift: 15 minuter omställning + 90 sekunder per rulle
@@ -168,7 +168,7 @@ function calculateStopTimes (order) {
   // Saxning för SM27 och SM28 vid rullar ≤ 1035 mm och minst 2 rullar
   // 10 minuter laddning per par rullar i drift (max 2 åt gången)
   const isSaxningEligible =
-    (machineId === 'SM27' || machineId === 'SM28') &&
+    (machineId === "SM27" || machineId === "SM28") &&
     rawRollWidth <= 1035 &&
     rolls >= 2;
   const saxningSetupTime = 25 * 60; // 1500 sekunder
@@ -185,25 +185,25 @@ function calculateStopTimes (order) {
 
 // Dynamisk funktion för att beräkna total produktionstid för båda alternativen
 function calculateProductionTime (order) {
-  const machineId = order['Maskin id'] || 'SM28';
-  const sheetLength = parseFloat(order['Arklängd']) || 0;
+  const machineId = order["Maskin id"] || "SM28";
+  const sheetLength = parseFloat(order["Arklängd"]) || 0;
   const speed = getMachineSpeed(machineId, sheetLength);
 
   const planeradVikt =
-    parseFloat((order['Planerad Vikt'] || '0').toString().replace(/\s/g, '')) ||
+    parseFloat((order["Planerad Vikt"] || "0").toString().replace(/\s/g, "")) ||
     0;
-  const gramvikt = parseFloat(order['Gramvikt']) || 0;
-  const rawRollWidthStr = order['RawRollWidth'] || '';
+  const gramvikt = parseFloat(order["Gramvikt"]) || 0;
+  const rawRollWidthStr = order["RawRollWidth"] || "";
   const rawRollWidths = rawRollWidthStr
-    .split(',')
+    .split(",")
     .map(x => parseFloat(x.trim()) || 0);
   const maxRawRollWidth = Math.max(...rawRollWidths, 0);
-  const lanes = parseFloat(order['Antal banor']) || 1;
-  const expectedWidth = parseFloat(order['Arkbredd']) || 0;
+  const lanes = parseFloat(order["Antal banor"]) || 1;
+  const expectedWidth = parseFloat(order["Arkbredd"]) || 0;
 
   if (gramvikt <= 0 || maxRawRollWidth <= 0 || speed <= 0) {
     console.warn(
-      `Ogiltiga värden för order ${order['Kundorder'] || 'okänd'}:`,
+      `Ogiltiga värden för order ${order["Kundorder"] || "okänd"}:`,
       { gramvikt, maxRawRollWidth, speed }
     );
     return { normalTime: 0, saxningTime: 0 };
@@ -267,6 +267,6 @@ async function processOrdersFromJson (jsonFile) {
 // })();
 
 // Export for Node.js environments
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== "undefined" && module.exports) {
   module.exports.processOrdersFromJson = processOrdersFromJson;
 }

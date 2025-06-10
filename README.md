@@ -24,15 +24,11 @@ node tools/calculate_order_times.js SM25.json SM27.json SM28.json
 
 The script creates `SM25_with_times.json`, `SM27_with_times.json` and `SM28_with_times.json` with additional fields `productionTimeNormal` and `productionTimeSaxning`.
 
-## Manual Planner
+## Order Reordering
 
-Open `planner.html` from the start page to build custom schedules. Features include:
-
-* Choose which machine to load orders for
-* Drag and drop orders to arrange a custom sequence
-* Add your own order using the input form
-* Save the sequence under a name and load it later
-* Generate a shift schedule using the same calculations as the machine pages
+Each machine page now lets you reorder the planned orders directly. Drag and drop
+orders between shifts or within a shift to update the schedule. Any custom
+sequences you save are still available in the plan selector on the machine pages.
 
 Saved plans appear in a selector on each machine page so you can view the generated schedule or one of your custom plans.
 
