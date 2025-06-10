@@ -85,6 +85,13 @@
         orders: shifts[shift]
       };
     });
+    currentShifts = {
+      FM: shifts.FM.map(o => ({ ...o, productionTime: o.adjustedTime })),
+      EM: shifts.EM.map(o => ({ ...o, productionTime: o.adjustedTime })),
+      Natt: shifts.Natt.map(o => ({ ...o, productionTime: o.adjustedTime }))
+    };
+    recalcSchedule();
+    renderPage();
     // Rendera visuella skiftblock
     if(window.renderShiftsOverview) {
       // Patch: override renderShiftsOverview to use formatTime for order times and remove hashtag
@@ -94,9 +101,9 @@
         // Hämta färger från CSS-variabler istället för hårdkodade värden
         const getVar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
         const shiftColors = {
-          FM: getVar('--shift-fm') || '#2563eb',
-          EM: getVar('--shift-em') || '#60a5fa',
-          Natt: getVar('--shift-natt') || '#fbbf24'
+          FM: getVar("--shift-fm") || "#2563eb",
+          EM: getVar("--shift-em") || "#60a5fa",
+          Natt: getVar("--shift-natt") || "#fbbf24"
         };
         const shiftNames = { FM: "FM (06:00-14:00)", EM: "EM (14:00-22:30)", Natt: "Natt (22:30-06:00)" };
         Object.keys(shifts).forEach(shiftKey => {
