@@ -57,13 +57,16 @@ function renderOrderList() {
   list.innerHTML = "";
   availableOrders.forEach((o, idx) => {
     const div = document.createElement("div");
-    div.className = "order-entry";
+    div.className = "order-entry-modern";
     div.innerHTML = `
+      <span class="order-btns">
+        <button data-idx="${idx}" class="small-btn icon-btn add">+</button>
+      </span>
       <span class="order-id">${o["Kundorder"]}</span>
       <span class="weight">${(o["Planerad Vikt"] || 0).toFixed(1)} kg</span>
       <span class="duration">${formatDuration(o.productionTimeNormal)}</span>
-      <button data-idx="${idx}" class="small-btn icon-btn">+</button>`;
-    div.querySelector("button").onclick = () => addToSequence(idx);
+    `;
+    div.querySelector(".add").onclick = () => addToSequence(idx);
     list.appendChild(div);
   });
 }
@@ -73,22 +76,40 @@ function renderSequence() {
   seq.innerHTML = "";
   plannedSequence.forEach((o, idx) => {
     const div = document.createElement("div");
-    div.className = "order-entry";
+    div.className = "order-entry-modern";
     div.draggable = true;
-    div.innerHTML = `${idx + 1}. ${o["Kundorder"]} - ${o["Planerad Vikt"]} kg ` +
-      `<button data-idx="${idx}" class="small-btn icon-btn up">&#8679;</button>` +
-      `<button data-idx="${idx}" class="small-btn icon-btn down">&#8681;</button>` +
-      `<button data-idx="${idx}" class="small-btn icon-btn remove">X</button>`;
+    div.innerHTML = `
+      <span class="order-btns">
+        <button data-idx="${idx}" class="small-btn icon-btn up">&#8679;</button>
+        <button data-idx="${idx}" class="small-btn icon-btn down">&#8681;</button>
+        <button data-idx="${idx}" class="small-btn icon-btn remove">X</button>
+      </span>
+      <span class="order-id">${o["Kundorder"]}</span>
+      <span class="weight">${(o["Planerad Vikt"] || 0).toFixed(1)} kg</span>
+      <span class="duration">${formatDuration(o.productionTimeNormal)}</span>
+    `;
     div.querySelector(".up").onclick = () => moveSequence(idx, -1);
     div.querySelector(".down").onclick = () => moveSequence(idx, 1);
     div.querySelector(".remove").onclick = () => removeFromSequence(idx);
     div.addEventListener("dragstart", e => {
       e.dataTransfer.setData("text/plain", idx);
+      div.classList.add("drag-over");
     });
-    div.addEventListener("dragover", e => e.preventDefault());
+    div.addEventListener("dragend", e => {
+      div.classList.remove("drag-over");
+    });
+    div.addEventListener("dragover", e => {
+      e.preventDefault();
+      div.classList.add("drag-over");
+    });
+    div.addEventListener("dragleave", e => {
+      div.classList.remove("drag-over");
+    });
     div.addEventListener("drop", e => {
       e.preventDefault();
+      div.classList.remove("drag-over");
       const fromIdx = parseInt(e.dataTransfer.getData("text/plain"), 10);
+      if (fromIdx === idx) return;
       const item = plannedSequence.splice(fromIdx, 1)[0];
       plannedSequence.splice(idx, 0, item);
       renderSequence();
