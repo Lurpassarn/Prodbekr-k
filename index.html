@@ -9,23 +9,25 @@
 </head>
 <body>
     <div class="main-hub">
-        <header>
+        <header class="main-header">
             <h1>Produktionsöversikt - 24-timmars cykel</h1>
             <p>Välkommen till översikten för produktionsplaneringen över 24 timmar för arkmaskinerna SM25, SM27 och SM28. Här ser du en summering av varje maskins prestanda per skift. Klicka på en maskin för detaljerad planering och uträkningar.</p>
         </header>
-        <div class="summary-container">
-            <h2>Summering av arkmaskiner</h2>
-            <div class="summary-box" id="machineSummaries"></div>
-        </div>
-        <div class="nav-buttons">
-            <a href="SM25.html" class="nav-button">Gå till SM25</a>
-            <a href="SM27.html" class="nav-button">Gå till SM27</a>
-            <a href="SM28.html" class="nav-button">Gå till SM28</a>
-            <a href="planner.html" class="nav-button">Planerare</a>
-        </div>
-        <div class="guidance">
+        <main class="main-content">
+            <section class="summary-container">
+                <h2>Summering av arkmaskiner</h2>
+                <div class="summary-box" id="machineSummaries"></div>
+            </section>
+            <nav class="nav-buttons">
+                <a href="SM25.html" class="nav-button">Gå till SM25</a>
+                <a href="SM27.html" class="nav-button">Gå till SM27</a>
+                <a href="SM28.html" class="nav-button">Gå till SM28</a>
+                <a href="planner.html" class="nav-button">Planerare</a>
+            </nav>
+        </main>
+        <footer class="guidance">
             <p><strong>Övrigt att tänka på:</strong> Tider baseras på "Arklängd" och "RawRollWidth". Utforska maskinsidor för detaljer.</p>
-        </div>
+        </footer>
     </div>
     <script src="production.js"></script>
     <script>
