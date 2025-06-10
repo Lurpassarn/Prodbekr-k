@@ -6,30 +6,37 @@
     <title>SM27 Produktionsplan</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <style>
+      .sm25-header h1, .shift-block-header b, .shift-summary-section b {
+        color: #fbbf24 !important;
+      }
+    </style>
 </head>
 <body data-machine="SM27">
     <div class="sm25-app">
         <aside class="sm25-sidebar">
-            <div class="sm25-logo">🟩 SM27</div>
+            <div class="sm25-logo" style="color:#fbbf24;">SM27</div>
             <nav>
                 <a href="index.html" class="sidebar-link">← Tillbaka till översikt</a>
             </nav>
-            <div class="machine-sidebar">
-                <h2>Välj maskin</h2>
-                <div class="machine-list">
-                    <a href="SM25.html" class="machine-btn">🟦 SM25</a>
-                    <a href="SM27.html" class="machine-btn">🟩 SM27</a>
-                    <a href="SM28.html" class="machine-btn">🟧 SM28</a>
-                </div>
-            </div>
+            <nav class="nav-buttons">
+              <a href="SM25.html" class="nav-button">Gå till SM25</a>
+              <a href="SM27.html" class="nav-button">Gå till SM27</a>
+              <a href="SM28.html" class="nav-button">Gå till SM28</a>
+              <a href="planner.html" class="nav-button">Planerare</a>
+            </nav>
         </aside>
         <main class="sm25-main">
             <header class="sm25-header">
                 <h1>SM27 Produktionsplan</h1>
                 <p class="sm25-sub">Planering och uträkning för dagens produktion. Välj skift nedan för att se detaljerad planering och summering.</p>
-                <label>Plan:
-                    <select id="planSelect"></select>
-                </label>
+                <div class="plan-select-wrapper">
+                  <select id="planSelect" placeholder="Välj Orderlista">
+                    <option value="" disabled selected hidden>Välj Orderlista</option>
+                    <option value="Ändring">Ändring</option>
+                  </select>
+                  <button id="loadPlanBtn" class="small-btn">Ladda</button>
+                </div>
                 <button id="manualStopBtn" class="small-btn">Lägg till stopp</button>
                 <span id="stopInfo"></span>
             </header>
@@ -46,7 +53,13 @@
     function renderShiftsOverview(shifts) {
         const container = document.getElementById('shiftsOverview');
         container.innerHTML = '';
-        const shiftColors = { FM: '#6366f1', EM: '#06b6d4', Natt: '#fbbf24' };
+        // Hämta färger från CSS-variabler
+        const getVar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+        const shiftColors = {
+            FM: getVar('--shift-fm') || '#1e40af',
+            EM: getVar('--shift-em') || '#2563eb',
+            Natt: getVar('--shift-natt') || '#fbbf24'
+        };
         const shiftNames = { FM: 'FM (06:00-14:00)', EM: 'EM (14:00-22:30)', Natt: 'Natt (22:30-06:00)' };
         Object.keys(shifts).forEach(shiftKey => {
             const shift = shifts[shiftKey];
@@ -59,7 +72,7 @@
             shiftDiv.className = 'shift-block';
             shiftDiv.innerHTML = `
                 <div class="shift-block-header" style="color:${color}">${icon} <b>${shiftNames[shiftKey]}</b></div>
-                <div class="shift-progress-bar" style="background:#e0e7ef">
+                <div class="shift-progress-bar" style="background:${getVar('--shift-bg')||'#1e293b'}">
                     <div class="shift-progress" style="width:${percent}%;background:${color}"></div>
                 </div>
                 <div class="shift-block-summary">

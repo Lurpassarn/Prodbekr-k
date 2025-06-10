@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="sv">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,26 +8,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="main-hub">
         <header class="main-header">
-            <h1><span style="vertical-align:middle;">📊</span> Produktionsöversikt <span style="font-size:0.7em;font-weight:400;">24-timmars cykel</span></h1>
-            <p>Välkommen till översikten för produktionsplaneringen över 24 timmar för arkmaskinerna <b>SM25</b>, <b>SM27</b> och <b>SM28</b>.<br>Här ser du en summering av varje maskins prestanda per skift. Klicka på en maskin för detaljerad planering och uträkningar.</p>
+            <h1><span style="vertical-align:middle;">📊</span> Produktionsöversikt <span
+                    style="font-size:0.7em;font-weight:400;">24-timmars cykel</span></h1>
         </header>
+        <!-- Navigationsknappar borttagna från startsidan -->
         <main class="main-content">
             <section class="summary-container">
-                <h2>Summering av arkmaskiner</h2>
                 <div class="summary-box" id="machineSummaries"></div>
             </section>
-            <nav class="nav-buttons">
-                <a href="SM25.html" class="nav-button">Gå till SM25</a>
-                <a href="SM27.html" class="nav-button">Gå till SM27</a>
-                <a href="SM28.html" class="nav-button">Gå till SM28</a>
-                <a href="planner.html" class="nav-button">Planerare</a>
-            </nav>
         </main>
         <footer class="guidance">
-            <p><strong>Övrigt att tänka på:</strong> Tider baseras på "Arklängd" och "RawRollWidth". Utforska maskinsidor för detaljer.</p>
+            &copy; 2025 Produktionsöversikt – SM25, SM27, SM28
         </footer>
     </div>
     <script src="production.js"></script>
@@ -92,10 +88,10 @@
                 });
                 // Lägg till totalsummering över dygnet
                 const allShifts = Object.values(summaries[machine].shifts);
-                const totalDygnKg = allShifts.reduce((a,s)=>a+s.totalKg,0);
-                const totalDygnOrders = allShifts.reduce((a,s)=>a+s.totalOrders,0);
-                const totalDygnTime = allShifts.reduce((a,s)=>a+s.totalTime,0);
-                const totalDygnKgPerHour = totalDygnTime > 0 ? (totalDygnKg/(totalDygnTime/60)) : 0;
+                const totalDygnKg = allShifts.reduce((a, s) => a + s.totalKg, 0);
+                const totalDygnOrders = allShifts.reduce((a, s) => a + s.totalOrders, 0);
+                const totalDygnTime = allShifts.reduce((a, s) => a + s.totalTime, 0);
+                const totalDygnKgPerHour = totalDygnTime > 0 ? (totalDygnKg / (totalDygnTime / 60)) : 0;
                 summaries[machine].totalDygn = {
                     totalKg: totalDygnKg,
                     totalOrders: totalDygnOrders,
@@ -126,30 +122,27 @@
                     </div>
                 `;
                 div.innerHTML = `
-                    <div class="summary-header">
-                        <h3 style="margin:0">${machine}</h3>
-                        <span class="arrow">&#9654;</span>
-                    </div>
                     ${totalBox}
+                    <div class="machine-title">${machine}</div>
                     <div class="summary-main">
                         <b>Teoretiskt (24h utan avbrott):</b><br>
                         KG/TIM: ${(() => {
-                            const totKg = Object.values(data.shifts).reduce((a,s)=>a+s.totalKg,0);
-                            return (totKg/24).toFixed(2);
-                        })()}
+                        const totKg = Object.values(data.shifts).reduce((a, s) => a + s.totalKg, 0);
+                        return (totKg / 24).toFixed(2);
+                    })()}
                         <br>
                         <b>Med rastväxling:</b><br>
                         KG/TIM: ${(() => {
-                            const totKg = Object.values(data.shifts).reduce((a,s)=>a+s.totalKg,0);
-                            const normalRate = totKg/24;
-                            const totalOutput = (22.5*normalRate) + (1.5*0.5*normalRate);
-                            return (totalOutput/24).toFixed(2);
-                        })()}
+                        const totKg = Object.values(data.shifts).reduce((a, s) => a + s.totalKg, 0);
+                        const normalRate = totKg / 24;
+                        const totalOutput = (22.5 * normalRate) + (1.5 * 0.5 * normalRate);
+                        return (totalOutput / 24).toFixed(2);
+                    })()}
                     </div>
-                    <div class="summary-shifts">
+                    <div class="summary-shifts" style="display:block;">
                         ${Object.keys(data.shifts).map(shift => {
-                            const s = data.shifts[shift];
-                            return `
+                        const s = data.shifts[shift];
+                        return `
                             <div class="shift-summary-mini">
                                 <b>${shiftNames[shift]}</b>:<br>
                                 Ordrar: ${s.totalOrders}<br>
@@ -157,26 +150,12 @@
                                 KG/TIM: ${s.kgPerHour.toFixed(2)} ${s.kgPerHour > 50 ? '📈' : '📉'}
                             </div>
                             `;
-                        }).join('')}
+                    }).join('')}
                     </div>
                 `;
-                div.addEventListener('click', function(e) {
-                    // Stäng alla andra
-                    document.querySelectorAll('.summary-collapsible').forEach(box => {
-                        if (box !== div) {
-                            box.querySelector('.summary-shifts').style.display = 'none';
-                            box.classList.remove('active');
-                        }
-                    });
-                    const shiftsDiv = div.querySelector('.summary-shifts');
-                    if (shiftsDiv.style.display === 'block') {
-                        shiftsDiv.style.display = 'none';
-                        div.classList.remove('active');
-                    } else {
-                        shiftsDiv.style.display = 'block';
-                        div.classList.add('active');
-                    }
-                    e.stopPropagation();
+                // Klick på boxen leder till maskinsidan
+                div.addEventListener('click', function (e) {
+                    window.location.href = `${machine}.html`;
                 });
                 row.appendChild(div);
             });
@@ -185,4 +164,5 @@
         loadSummary();
     </script>
 </body>
+
 </html>

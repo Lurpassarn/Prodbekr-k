@@ -15,41 +15,41 @@ const schedule = {
 let availableOrders = [];
 let plannedSequence = [];
 
-function nextShift(shift){
+function nextShift(shift) {
   return shift === "FM" ? "EM" : shift === "EM" ? "Natt" : "FM";
 }
 
-function formatTime(mins){
-  const h = Math.floor(mins/60)%24;
-  const m = Math.round(mins%60);
-  return String(h).padStart(2,"0")+":" + String(m).padStart(2,"0");
+function formatTime(mins) {
+  const h = Math.floor(mins / 60) % 24;
+  const m = Math.round(mins % 60);
+  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
 }
 
-function getSaved(machine){
-  const data = JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}");
+function getSaved(machine) {
+  const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
   return data[machine] || {};
 }
 
-function savePlan(machine,name,sequence){
-  const data = JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}");
-  if(!data[machine]) data[machine]={};
+function savePlan(machine, name, sequence) {
+  const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+  if (!data[machine]) data[machine] = {};
   data[machine][name] = sequence;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-function loadSavedNames(machine){
+function loadSavedNames(machine) {
   const sel = document.getElementById("savedPlans");
   const plans = getSaved(machine);
   sel.innerHTML = "<option value=\"\">Välj plan</option>";
-  Object.keys(plans).forEach(n=>{
-    const opt=document.createElement("option");
-    opt.value=n; opt.textContent=n; sel.appendChild(opt);
+  Object.keys(plans).forEach(n => {
+    const opt = document.createElement("option");
+    opt.value = n; opt.textContent = n; sel.appendChild(opt);
   });
 }
 
-function formatDuration(mins){
-  const h=Math.floor(mins/60);const m=Math.round(mins%60);
-  return h>0?`${h}h ${m}m`:`${m}m`;
+function formatDuration(mins) {
+  const h = Math.floor(mins / 60); const m = Math.round(mins % 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
 function renderOrderList() {
@@ -127,34 +127,34 @@ function renderSchedule() {
     const h = document.createElement("h3");
     h.textContent = shift + "-skift";
     container.appendChild(h);
-    const ul=document.createElement("ul");
-    s.orders.forEach(o=>{
-      const li=document.createElement("li");
-      li.textContent=`${o.orderId} ${formatTime(o.start)} - ${formatTime(o.end)} (${o.weight.toFixed(1)} kg)`;
+    const ul = document.createElement("ul");
+    s.orders.forEach(o => {
+      const li = document.createElement("li");
+      li.textContent = `${o.orderId} ${formatTime(o.start)} - ${formatTime(o.end)} (${o.weight.toFixed(1)} kg)`;
       ul.appendChild(li);
     });
     container.appendChild(ul);
   });
 }
 
-function scheduleOrder(order,shift){
-  let timeLeft=order.productionTimeNormal;
-  let weightLeft=parseFloat(order["Planerad Vikt"])||0;
-  const rate=weightLeft/order.productionTimeNormal;
-  while(timeLeft>0){
-    if(schedule[shift].nextStart<shiftTimings[shift].start)
-      schedule[shift].nextStart=shiftTimings[shift].start;
-    if(schedule[shift].nextStart>=shiftTimings[shift].end){
-      shift=nextShift(shift);continue;
+function scheduleOrder(order, shift) {
+  let timeLeft = order.productionTimeNormal;
+  let weightLeft = parseFloat(order["Planerad Vikt"]) || 0;
+  const rate = weightLeft / order.productionTimeNormal;
+  while (timeLeft > 0) {
+    if (schedule[shift].nextStart < shiftTimings[shift].start)
+      schedule[shift].nextStart = shiftTimings[shift].start;
+    if (schedule[shift].nextStart >= shiftTimings[shift].end) {
+      shift = nextShift(shift); continue;
     }
-    const start=schedule[shift].nextStart;
-    const available=shiftTimings[shift].end-start;
-    const run=Math.min(timeLeft,available);
-    const weight=rate*run;
-    schedule[shift].orders.push({orderId:order["Kundorder"],start,end:start+run,weight});
-    schedule[shift].nextStart=start+run;
-    timeLeft-=run;weightLeft-=weight;
-    if(timeLeft>0) shift=nextShift(shift);
+    const start = schedule[shift].nextStart;
+    const available = shiftTimings[shift].end - start;
+    const run = Math.min(timeLeft, available);
+    const weight = rate * run;
+    schedule[shift].orders.push({ orderId: order["Kundorder"], start, end: start + run, weight });
+    schedule[shift].nextStart = start + run;
+    timeLeft -= run; weightLeft -= weight;
+    if (timeLeft > 0) shift = nextShift(shift);
   }
   return shift;
 }
@@ -188,7 +188,7 @@ function removeFromSequence(idx) {
 
 
 function resetSchedule() {
-  ["FM","EM","Natt"].forEach(s => {
+  ["FM", "EM", "Natt"].forEach(s => {
     schedule[s].orders = [];
     schedule[s].nextStart = shiftTimings[s].start;
   });
@@ -204,7 +204,7 @@ function generateSchedule() {
 }
 
 function addCustomOrder(e) {
-  if(e) e.preventDefault();
+  if (e) e.preventDefault();
   const orderId = document.getElementById("coId").value.trim();
   if (!orderId) return;
   const weight = parseFloat(document.getElementById("coWeight").value) || 0;
@@ -229,7 +229,7 @@ function addCustomOrder(e) {
   order.productionTimeSaxning = saxningTime;
   availableOrders.push(order);
   renderOrderList();
-  if(e) e.target.reset();
+  if (e) e.target.reset();
   generateSchedule();
 }
 
@@ -238,10 +238,10 @@ async function loadOrders(machine) {
     const resp = await fetch(machine + ".json");
     const data = await resp.json();
     availableOrders = calculateAllProductionTimes(data)
-      .sort((a,b)=>{
-        const aStart=parseFloat(a["Planerad start"]||0);
-        const bStart=parseFloat(b["Planerad start"]||0);
-        return aStart-bStart;
+      .sort((a, b) => {
+        const aStart = parseFloat(a["Planerad start"] || 0);
+        const bStart = parseFloat(b["Planerad start"] || 0);
+        return aStart - bStart;
       });
   } catch (err) {
     console.error("Could not load orders:", err);
@@ -254,39 +254,39 @@ async function loadOrders(machine) {
   generateSchedule();
 }
 
-async function loadSelectedPlan(){
-  const sel=document.getElementById("savedPlans");
-  const name=sel.value;
-  if(!name){
-    plannedSequence=[];
+async function loadSelectedPlan() {
+  const sel = document.getElementById("savedPlans");
+  const name = sel.value;
+  if (!name) {
+    plannedSequence = [];
     renderSequence();
     renderOrderList();
     return;
   }
-  const machine=document.getElementById("machineSelect").value;
-  const plan=getSaved(machine)[name];
-  if(!plan) return;
+  const machine = document.getElementById("machineSelect").value;
+  const plan = getSaved(machine)[name];
+  if (!plan) return;
   await loadOrders(machine);
   document.getElementById("savedPlans").value = name;
-  plan.forEach(p=>{
-    const idx=availableOrders.findIndex(o=>o["Kundorder"]===p["Kundorder"]);
-    if(idx>-1) availableOrders.splice(idx,1);
+  plan.forEach(p => {
+    const idx = availableOrders.findIndex(o => o["Kundorder"] === p["Kundorder"]);
+    if (idx > -1) availableOrders.splice(idx, 1);
   });
-  plannedSequence=plan.slice();
+  plannedSequence = plan.slice();
   renderOrderList();
   renderSequence();
   generateSchedule();
 }
 
-document.addEventListener("DOMContentLoaded",async ()=>{
-  const select=document.getElementById("machineSelect");
+document.addEventListener("DOMContentLoaded", async () => {
+  const select = document.getElementById("machineSelect");
   await loadOrders(select.value);
   loadSavedNames(select.value);
   select.addEventListener("change", () => { loadOrders(select.value); loadSavedNames(select.value); });
   document.getElementById("savePlanBtn").onclick = () => {
-    const name=document.getElementById("planName").value.trim();
-    if(!name){ alert("Ange namn f\u00f6r planen"); return; }
-    savePlan(select.value,name,plannedSequence);
+    const name = document.getElementById("planName").value.trim();
+    if (!name) { alert("Ange namn f\u00f6r planen"); return; }
+    savePlan(select.value, name, plannedSequence);
     loadSavedNames(select.value);
     alert("Plan sparad");
   };

@@ -91,7 +91,13 @@
       window.renderShiftsOverview = function(shifts) {
         const container = document.getElementById("shiftsOverview");
         container.innerHTML = "";
-        const shiftColors = { FM: "#2563eb", EM: "#60a5fa", Natt: "#fbbf24" };
+        // Hämta färger från CSS-variabler istället för hårdkodade värden
+        const getVar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+        const shiftColors = {
+          FM: getVar('--shift-fm') || '#2563eb',
+          EM: getVar('--shift-em') || '#60a5fa',
+          Natt: getVar('--shift-natt') || '#fbbf24'
+        };
         const shiftNames = { FM: "FM (06:00-14:00)", EM: "EM (14:00-22:30)", Natt: "Natt (22:30-06:00)" };
         Object.keys(shifts).forEach(shiftKey => {
             const shift = shifts[shiftKey];
@@ -445,8 +451,6 @@
     container.innerHTML="";
     const totalKg=Object.keys(shifts).reduce((a,key)=>a+shifts[key].reduce((x,o)=>x+parseFloat(o["Planerad Vikt"]||0),0),0);
     if(totalKg===0) return;
-    const shiftColors={FM:"#2563eb",EM:"#60a5fa",Natt:"#64748b"};
-    const shiftNames={FM:"FM-Skift",EM:"EM-Skift",Natt:"Natt-Skift"};
     const barWrapper=document.createElement("div");
     barWrapper.className="shift-bar";
     Object.keys(shifts).forEach(shift=>{
