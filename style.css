@@ -1,3 +1,4 @@
+
 /* --- Modern Redesign --- */
 :root {
   --primary: #2563eb; /* PM300 blue */
@@ -390,6 +391,61 @@ input:focus, select:focus {
   font-weight: 700;
   font-size: 1.08em;
   box-shadow: 0 2px 8px #1e40af33;
+  transition: background 0.2s;
+}
+.machine-btn:hover { background: var(--secondary); }
+
+/* --- Index summary and navigation --- */
+.summary-container { text-align: center; margin-top: 20px; }
+.summary-box { margin-top:20px; }
+.summary-row {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  justify-content: center;
+}
+.summary-item { background:#fff; border-radius:12px; box-shadow:0 2px 8px #e0e7ef; padding:18px; cursor:pointer; transition:box-shadow .2s; min-width:220px; }
+.summary-item:hover { box-shadow:0 4px 16px #b6d0fa; }
+.summary-item.active { box-shadow:0 4px 18px #b6d0fa; }
+.summary-item.active .arrow { transform:rotate(90deg); }
+.summary-total-dygn { background:var(--secondary); color:#fff; border-radius:10px; padding:14px 18px; margin-bottom:12px; box-shadow:0 2px 8px #b6d0fa; }
+.summary-main { font-size:1em; }
+.summary-shifts { display:none; margin-top:12px; }
+.shift-summary-mini { background:#f1f5fa; border-radius:8px; padding:6px 10px; margin-top:6px; font-size:0.95em; }
+
+.nav-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+.nav-button { background:var(--primary); color:#fff; padding:12px 18px; text-decoration:none; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1); font-weight:600; transition:background .2s; }
+.nav-button:hover { background:#4338ca; }
+
+/* Index layout */
+.main-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Extra info text */
+.guidance {
+  margin-top: 20px;
+  font-size: 0.95em;
+  color: #374151;
+  text-align: center;
+}
+.machine-guidance {
+  margin-left: 260px;
+  text-align: left;
+}
+
   transition: background 0.2s, color 0.2s;
   border: 1.5px solid #fff3;
 }

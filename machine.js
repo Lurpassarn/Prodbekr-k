@@ -4,6 +4,8 @@
   let isPaused = false;
   let pauseStartTime = 0;
   let totalPauseTime = 0;
+  let currentShifts = { FM: [], EM: [], Natt: [] };
+  let manualStops = [];
 
   function getSavedPlans(){
     const data = JSON.parse(localStorage.getItem("savedPlans")||"{}");
@@ -196,13 +198,19 @@
   }
 
   function addManualStop(){
-    const mins = parseFloat(prompt("Ange stopp i minuter:",""));
-    if(!isNaN(mins) && mins>0){
-      totalPauseTime += mins;
-      const info=document.getElementById("stopInfo");
-      if(info) info.textContent = `Manuellt stopp på ${mins} min inlagt.`;
-      loadOrders();
+    const from=prompt("Från klockan (HH:MM)","06:00");
+    if(!from) return;
+    const to=prompt("Till klockan (HH:MM)","06:10");
+    if(!to) return;
+    const start=parseTime(from);
+    const end=parseTime(to);
+    if(isNaN(start)||isNaN(end)||end<=start){
+      alert("Ogiltig tid");
+      return;
     }
+    manualStops.push({start,end});
+    recalcSchedule();
+    renderPage();
   }
 
   function formatTime(minutes){
@@ -272,6 +280,119 @@
         e.stopPropagation();
       });
     });
+  }
+
+  function parseTime(str){
+    const [h,m] = str.split(":").map(n=>parseInt(n,10));
+    if(isNaN(h) || isNaN(m)) return NaN;
+    return h*60 + m;
+  }
+
+  function analyzeShiftOrders(list){
+    const issues=[];
+    const weights=list.map(o=>parseFloat(o["Planerad Vikt"]||0));
+    const small=weights.filter(w=>w && w<1000).length;
+    if(list.length>8) issues.push("Många ordrar kan ge långa omställningar");
+    if(small>list.length/2) issues.push("Hög andel små ordrar (<1 ton)");
+    const lengths=new Set(list.map(o=>parseFloat(o["Arklängd"])||0));
+    if(lengths.size>3) issues.push("Stor variation i arklängd");
+    return issues;
+  }
+
+  function recalcSchedule(){
+    const starts={FM:6*60,EM:14*60,Natt:22.5*60};
+    ["FM","EM","Natt"].forEach(s=>{
+      let current=starts[s];
+      currentShifts[s].forEach(o=>{
+        let start=current;
+        let end=start+o.productionTime;
+        manualStops.forEach(st=>{
+          if(st.end<=start||st.start>=end) return;
+          if(st.start<=start){ start=st.end; end=start+o.productionTime; }
+          else if(st.start<end){ end+=st.end-st.start; }
+        });
+        o.startTime=start%1440;
+        o.endTime=end%1440;
+        current=end;
+      });
+    });
+  }
+
+  function renderPage(){
+    const ordersContainer=document.getElementById("ordersContainer");
+    ordersContainer.innerHTML="";
+    const shiftNames={FM:"FM-Skift",EM:"EM-Skift",Natt:"Natt-Skift"};
+    Object.keys(currentShifts).forEach(shift=>{
+      const btn=document.createElement("button");
+      btn.className="shift-toggle";
+      btn.innerHTML=`<span class="shift-arrow">&#9654;</span> ${shiftNames[shift]}`;
+      btn.dataset.shift=shift;
+      btn.addEventListener("click",()=>toggleShift(shift));
+      ordersContainer.appendChild(btn);
+
+      const summary=document.createElement("div");
+      summary.className="shift-summary";
+      const totalKg=currentShifts[shift].reduce((a,o)=>a+parseFloat(o["Planerad Vikt"]||0),0);
+      const totalOrders=currentShifts[shift].length;
+      const totalTime=currentShifts[shift].reduce((a,o)=>a+o.productionTime,0);
+      const kgPerHour=totalTime>0?(totalKg/(totalTime/60)):0;
+      summary.innerHTML=`<h3>Summering för ${shiftNames[shift]}:</h3><p>Planerad produktion: ${totalKg.toFixed(2)} kg</p><p>Körda ordrar: ${totalOrders}</p><p>Summa KG/TIM: ${kgPerHour.toFixed(2)}</p>`;
+      ordersContainer.appendChild(summary);
+
+      const section=document.createElement("div");
+      section.className="shift-section shift-wrapper";
+      section.id="section-"+shift;
+      section.style.display="none";
+
+      const analysis=analyzeShiftOrders(currentShifts[shift]);
+      if(analysis.length){
+        const a=document.createElement("div");
+        a.className="analysis-box";
+        a.innerHTML="<b>Analys:</b><ul>"+analysis.map(t=>`<li>${t}</li>`).join("")+"</ul>";
+        section.appendChild(a);
+      }
+
+      const list=document.createElement("div");
+      list.className="orders-list";
+      list.dataset.shift=shift;
+      list.addEventListener("dragover",e=>e.preventDefault());
+      list.addEventListener("drop",e=>{
+        e.preventDefault();
+        const fromShift=e.dataTransfer.getData("shift");
+        const fromIdx=parseInt(e.dataTransfer.getData("index"),10);
+        if(!fromShift) return;
+        const item=currentShifts[fromShift].splice(fromIdx,1)[0];
+        currentShifts[shift].push(item);
+        recalcSchedule();
+        renderPage();
+      });
+
+      currentShifts[shift].forEach((o,idx)=>{
+        const d=document.createElement("div");
+        d.className="order-row";
+        d.draggable=true;
+        d.addEventListener("dragstart",ev=>{
+          ev.dataTransfer.setData("shift",shift);
+          ev.dataTransfer.setData("index",idx);
+        });
+        d.innerHTML=`<div class="order-summary"><span>${o["Kundorder"]||"Okänd"}</span><span>${(o["Planerad Vikt"]||0).toFixed(1)} kg</span><span>${o["Arklängd"]||"?"} mm</span><span>${o.speed.toFixed(0)} m/min</span><span>${formatTime(o.startTime)} - ${formatTime(o.endTime)}</span></div><div class="calc-result" style="display:none;"></div>`;
+        d.querySelector(".order-summary").addEventListener("click",function(){showOrderCalculation(this,o,machineId);});
+        list.appendChild(d);
+        manualStops.forEach((st,si)=>{
+          if(st.start>=o.startTime && st.start<o.endTime){
+            const sdiv=document.createElement("div");
+            sdiv.className="manual-stop";
+            sdiv.innerHTML=`Stopp ${formatTime(st.start)}-${formatTime(st.end)} <button data-i='${si}'>X</button>`;
+            sdiv.querySelector("button").onclick=()=>{manualStops.splice(si,1);recalcSchedule();renderPage();};
+            list.appendChild(sdiv);
+          }
+        });
+      });
+      section.appendChild(list);
+      ordersContainer.appendChild(section);
+    });
+
+    renderShiftBar(currentShifts);
   }
 
   function renderShiftBar(shifts){
