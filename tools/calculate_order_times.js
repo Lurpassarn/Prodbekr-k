@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require("fs");
 
 // Speed curves identical to production.js
 const machineSpeedCurves = {
@@ -39,7 +39,7 @@ const machineSpeedCurves = {
 };
 
 function getMachineSpeed(machineId, sheetLength) {
-  const curve = machineSpeedCurves[machineId] || machineSpeedCurves['SM28'];
+  const curve = machineSpeedCurves[machineId] || machineSpeedCurves["SM28"];
   if (!sheetLength || sheetLength < curve[0].size) return curve[0].speed;
   if (sheetLength >= curve[curve.length - 1].size) return curve[curve.length - 1].speed;
   for (let i = 0; i < curve.length - 1; i++) {
@@ -53,19 +53,19 @@ function getMachineSpeed(machineId, sheetLength) {
 }
 
 function estimateRollCount(order) {
-  const reservedWeight = parseFloat(order['Reserverad Vikt'] || '0').toString().replace(/\s/g, '') || 0;
-  const plannedWeight = parseFloat(order['Planerad Vikt'] || '0').toString().replace(/\s/g, '') || 0;
-  const gramvikt = parseFloat(order['Gramvikt']) || 0;
-  const rawRollWidthStr = order['RawRollWidth'] || '';
-  const rawRollWidths = rawRollWidthStr.split(',').map(x => parseFloat(x.trim()) || 0).filter(w => w > 0);
+  const reservedWeight = parseFloat(order["Reserverad Vikt"] || "0").toString().replace(/\s/g, "") || 0;
+  const plannedWeight = parseFloat(order["Planerad Vikt"] || "0").toString().replace(/\s/g, "") || 0;
+  const gramvikt = parseFloat(order["Gramvikt"]) || 0;
+  const rawRollWidthStr = order["RawRollWidth"] || "";
+  const rawRollWidths = rawRollWidthStr.split(",").map(x => parseFloat(x.trim()) || 0).filter(w => w > 0);
   const numUniqueWidths = new Set(rawRollWidths).size;
   const maxRawRollWidth = Math.max(...rawRollWidths, 0);
-  const sheetLength = parseFloat(order['Arklängd']) || 0;
-  const lanes = parseFloat(order['Antal banor']) || 1;
-  const expectedWidth = parseFloat(order['Arkbredd']) || 0;
+  const sheetLength = parseFloat(order["Arklängd"]) || 0;
+  const lanes = parseFloat(order["Antal banor"]) || 1;
+  const expectedWidth = parseFloat(order["Arkbredd"]) || 0;
 
-  const rollsStr = order['Rullar'] || '';
-  const [availableRollsStr, allocatedRollsStr] = rollsStr.split('(').map(s => s.replace(')', ''));
+  const rollsStr = order["Rullar"] || "";
+  const [availableRollsStr, allocatedRollsStr] = rollsStr.split("(").map(s => s.replace(")", ""));
   const availableRolls = parseInt(availableRollsStr) || 0;
   const allocatedRolls = parseInt(allocatedRollsStr) || 0;
 
@@ -92,20 +92,20 @@ function estimateRollCount(order) {
   }
 
   const spillFactor = expectedWidth > 0 && maxRawRollWidth > 0 ? Math.max(0.5, 1 - (expectedWidth * lanes) / maxRawRollWidth) : 1;
-  if (spillFactor < 0.5) console.warn('Hög spillfaktor för order', order['Kundorder']);
+  if (spillFactor < 0.5) console.warn("Hög spillfaktor för order", order["Kundorder"]);
 
   return rolls;
 }
 
 function calculateStopTimes(order) {
-  const machineId = order['Maskin id'] || 'SM28';
-  const rawRollWidth = parseFloat(order['RawRollWidth'].split(',')[0]) || 0;
+  const machineId = order["Maskin id"] || "SM28";
+  const rawRollWidth = parseFloat(order["RawRollWidth"].split(",")[0]) || 0;
   const rolls = estimateRollCount(order);
 
   const normalSetupTime = 15 * 60;
   const normalStopTime = normalSetupTime + rolls * 90;
 
-  const isSaxningEligible = (machineId === 'SM27' || machineId === 'SM28') && rawRollWidth <= 1035 && rolls >= 2;
+  const isSaxningEligible = (machineId === "SM27" || machineId === "SM28") && rawRollWidth <= 1035 && rolls >= 2;
   const saxningSetupTime = 25 * 60;
   const numSaxningPairs = Math.ceil(rolls / 2);
   const saxningStopTime = isSaxningEligible ? saxningSetupTime + (numSaxningPairs * 10 * 60) : 0;
@@ -114,20 +114,20 @@ function calculateStopTimes(order) {
 }
 
 function calculateProductionTime(order) {
-  const machineId = order['Maskin id'] || 'SM28';
-  const sheetLength = parseFloat(order['Arklängd']) || 0;
+  const machineId = order["Maskin id"] || "SM28";
+  const sheetLength = parseFloat(order["Arklängd"]) || 0;
   const speed = getMachineSpeed(machineId, sheetLength);
 
-  const planeradVikt = parseFloat((order['Planerad Vikt'] || '0').toString().replace(/\s/g, '')) || 0;
-  const gramvikt = parseFloat(order['Gramvikt']) || 0;
-  const rawRollWidthStr = order['RawRollWidth'] || '';
-  const rawRollWidths = rawRollWidthStr.split(',').map(x => parseFloat(x.trim()) || 0);
+  const planeradVikt = parseFloat((order["Planerad Vikt"] || "0").toString().replace(/\s/g, "")) || 0;
+  const gramvikt = parseFloat(order["Gramvikt"]) || 0;
+  const rawRollWidthStr = order["RawRollWidth"] || "";
+  const rawRollWidths = rawRollWidthStr.split(",").map(x => parseFloat(x.trim()) || 0);
   const maxRawRollWidth = Math.max(...rawRollWidths, 0);
-  const lanes = parseFloat(order['Antal banor']) || 1;
-  const expectedWidth = parseFloat(order['Arkbredd']) || 0;
+  const lanes = parseFloat(order["Antal banor"]) || 1;
+  const expectedWidth = parseFloat(order["Arkbredd"]) || 0;
 
   if (gramvikt <= 0 || maxRawRollWidth <= 0 || speed <= 0) {
-    console.warn('Ogiltiga värden för order', order['Kundorder']);
+    console.warn("Ogiltiga värden för order", order["Kundorder"]);
     return { normalTime: 0, saxningTime: 0 };
   }
 
@@ -152,17 +152,17 @@ function calculateAllProductionTimes(orders) {
 }
 
 function processFile(inputPath) {
-  const data = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+  const data = JSON.parse(fs.readFileSync(inputPath, "utf8"));
   const result = calculateAllProductionTimes(data);
-  const outPath = inputPath.replace(/\.json$/i, '_with_times.json');
-  fs.writeFileSync(outPath, JSON.stringify(result, null, 2), 'utf8');
+  const outPath = inputPath.replace(/\.json$/i, "_with_times.json");
+  fs.writeFileSync(outPath, JSON.stringify(result, null, 2), "utf8");
   console.log(`Wrote ${outPath}`);
 }
 
 if (require.main === module) {
   const files = process.argv.slice(2);
   if (files.length === 0) {
-    console.error('Usage: node tools/calculate_order_times.js <jsonFile...>');
+    console.error("Usage: node tools/calculate_order_times.js <jsonFile...>");
     process.exit(1);
   }
   files.forEach(processFile);
