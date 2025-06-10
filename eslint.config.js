@@ -1,4 +1,4 @@
-export default [
+module.exports = [
     {
       files: ["**/*.js"],
       languageOptions: {
@@ -9,7 +9,6 @@ export default [
         reportUnusedDisableDirectives: true
       },
       rules: {
-        // Standardregler här, t.ex:
         semi: "error",
         quotes: ["error", "double"]
       }
