@@ -73,7 +73,7 @@
     // Summera per skift
     const shiftStats = {};
     Object.keys(shifts).forEach(shift => {
-      const totalKg = shifts[shift].reduce((acc, order) => acc + parseFloat(order['Planerad Vikt'] || 0), 0);
+      const totalKg = shifts[shift].reduce((acc, order) => acc + parseFloat(order["Planerad Vikt"] || 0), 0);
       const totalOrders = shifts[shift].length;
       const totalTime = shifts[shift].reduce((acc, order) => acc + order.adjustedTime, 0);
       const kgPerHour = totalTime > 0 ? (totalKg / (totalTime / 60)) : 0;
@@ -89,19 +89,19 @@
     if(window.renderShiftsOverview) {
       // Patch: override renderShiftsOverview to use formatTime for order times and remove hashtag
       window.renderShiftsOverview = function(shifts) {
-        const container = document.getElementById('shiftsOverview');
-        container.innerHTML = '';
-        const shiftColors = { FM: '#2563eb', EM: '#60a5fa', Natt: '#fbbf24' };
-        const shiftNames = { FM: 'FM (06:00-14:00)', EM: 'EM (14:00-22:30)', Natt: 'Natt (22:30-06:00)' };
+        const container = document.getElementById("shiftsOverview");
+        container.innerHTML = "";
+        const shiftColors = { FM: "#2563eb", EM: "#60a5fa", Natt: "#fbbf24" };
+        const shiftNames = { FM: "FM (06:00-14:00)", EM: "EM (14:00-22:30)", Natt: "Natt (22:30-06:00)" };
         Object.keys(shifts).forEach(shiftKey => {
             const shift = shifts[shiftKey];
             const orders = shift.orders || [];
             const maxKgPerHour = Math.max(...Object.values(shifts).map(s=>s.kgPerHour));
             const percent = maxKgPerHour ? Math.round((shift.kgPerHour/maxKgPerHour)*100) : 0;
             const color = shiftColors[shiftKey];
-            const icon = shiftKey==='FM'?'🌅':shiftKey==='EM'?'🌇':'🌙';
-            const shiftDiv = document.createElement('div');
-            shiftDiv.className = 'shift-block';
+            const icon = shiftKey==="FM"?"🌅":shiftKey==="EM"?"🌇":"🌙";
+            const shiftDiv = document.createElement("div");
+            shiftDiv.className = "shift-block";
             shiftDiv.innerHTML = `
                 <div class="shift-block-header" style="color:${color}">${icon} <b>${shiftNames[shiftKey]}</b></div>
                 <div class="shift-progress-bar" style="background:#3b82f6">
@@ -118,20 +118,20 @@
                           <div class="shift-order-card-content">
                             <div class="shift-order-card-left">
                               <span class="order-start">${formatTime(order.startTime)}</span>
-                              <span class="order-id">${order['Kundorder']||order['OrderID']||''}</span>
+                              <span class="order-id">${order["Kundorder"]||order["OrderID"]||""}</span>
                             </div>
                             <div class="shift-order-card-right">
-                              <span class="order-weight">${order['Planerad Vikt']||0} kg</span>
+                              <span class="order-weight">${order["Planerad Vikt"]||0} kg</span>
                               <span class="order-end">${formatTime(order.endTime)}</span>
                             </div>
                           </div>
                         </div>
-                    `).join('')}
+                    `).join("")}
                 </div>
             `;
             container.appendChild(shiftDiv);
         });
-      }
+      };
       window.renderShiftsOverview(shiftStats);
     }
     // Summering
@@ -143,10 +143,10 @@
   }
 
   function renderShiftSummary(shiftStats) {
-    const container = document.getElementById('shiftSummary');
+    const container = document.getElementById("shiftSummary");
     if(!container) return;
-    container.innerHTML = '';
-    let html = '<h3>Summering av skift</h3>';
+    container.innerHTML = "";
+    let html = "<h3>Summering av skift</h3>";
     Object.keys(shiftStats).forEach(shift => {
       const s = shiftStats[shift];
       html += `<div><b>${shift}</b>: Ordrar: <b>${s.totalOrders}</b>, KG: <b>${s.totalKg.toFixed(1)}</b>, KG/TIM: <b>${s.kgPerHour.toFixed(2)}</b></div>`;
@@ -155,15 +155,15 @@
   }
 
   function renderShiftAnalysis(shiftStats) {
-    const container = document.getElementById('shiftAnalysis');
+    const container = document.getElementById("shiftAnalysis");
     if(!container) return;
-    container.innerHTML = '';
+    container.innerHTML = "";
     // Dynamisk analys: jämför skift, hitta hög/låg, ge förklaring
     const statsArr = Object.entries(shiftStats).map(([k,v])=>({...v, key:k}));
     if(statsArr.length<2) return;
     const max = statsArr.reduce((a,b)=>a.kgPerHour>b.kgPerHour?a:b);
     const min = statsArr.reduce((a,b)=>a.kgPerHour<b.kgPerHour?a:b);
-    let text = '';
+    let text = "";
     if(max.kgPerHour-min.kgPerHour<5) {
       text = `Alla skift har liknande produktionstakt (${max.kgPerHour.toFixed(2)} - ${min.kgPerHour.toFixed(2)} kg/tim).`;
     } else {
@@ -174,7 +174,7 @@
       if(max.totalKg>min.totalKg) factors.push(`${max.key} har högre totalvikt (${max.totalKg.toFixed(1)} kg) än ${min.key} (${min.totalKg.toFixed(1)} kg).`);
       if(max.orders.some(o=>o.isSaxning)) factors.push(`${max.key} har saxning på vissa ordrar, vilket kan öka produktionstakten.`);
       if(min.orders.some(o=>parseFloat(o["Planerad Vikt"]||0)<1000)) factors.push(`${min.key} har många små ordrar (<1 ton), vilket kan sänka produktionen.`);
-      if(factors.length) text += '<br><ul><li>' + factors.join('</li><li>') + '</li></ul>';
+      if(factors.length) text += "<br><ul><li>" + factors.join("</li><li>") + "</li></ul>";
     }
     container.innerHTML = text;
   }
@@ -370,10 +370,26 @@
       currentShifts[shift].forEach((o,idx)=>{
         const d=document.createElement("div");
         d.className="order-row";
+        d.dataset.index=idx;
         d.draggable=true;
         d.addEventListener("dragstart",ev=>{
           ev.dataTransfer.setData("shift",shift);
           ev.dataTransfer.setData("index",idx);
+        });
+        d.addEventListener("dragover",ev=>{ ev.preventDefault(); d.classList.add("drag-over"); });
+        d.addEventListener("dragleave",()=>{ d.classList.remove("drag-over"); });
+        d.addEventListener("drop",ev=>{
+          ev.preventDefault();
+          d.classList.remove("drag-over");
+          const fromShift=ev.dataTransfer.getData("shift");
+          const fromIdx=parseInt(ev.dataTransfer.getData("index"),10);
+          if(!fromShift) return;
+          let toIdx=parseInt(d.dataset.index,10);
+          const item=currentShifts[fromShift].splice(fromIdx,1)[0];
+          if(fromShift===shift && fromIdx<toIdx) toIdx--;
+          currentShifts[shift].splice(toIdx,0,item);
+          recalcSchedule();
+          renderPage();
         });
         d.innerHTML=`<div class="order-summary"><span>${o["Kundorder"]||"Okänd"}</span><span>${(o["Planerad Vikt"]||0).toFixed(1)} kg</span><span>${o["Arklängd"]||"?"} mm</span><span>${o.speed.toFixed(0)} m/min</span><span>${formatTime(o.startTime)} - ${formatTime(o.endTime)}</span></div><div class="calc-result" style="display:none;"></div>`;
         d.querySelector(".order-summary").addEventListener("click",function(){showOrderCalculation(this,o,machineId);});
