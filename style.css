@@ -198,6 +198,20 @@ body {
   align-items: center;
   width: 100%;
 }
+.order-row {
+  display: flex;
+  justify-content: space-between;
+  background: #1e293b;
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  width: 100%;
+  cursor: grab;
+}
+.order-row.drag-over {
+  border: 2px dashed var(--secondary);
+}
 .shift-order-card {
   display: flex;
   flex-direction: row;
