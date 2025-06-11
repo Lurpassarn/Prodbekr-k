@@ -20,8 +20,10 @@ function nextShift(shift) {
 }
 
 function formatTime(mins) {
-  const h = Math.floor(mins / 60) % 24;
-  const m = Math.round(mins % 60);
+  // Handle the case where rounding minutes gives 60
+  const totalMinutes = Math.round(mins);
+  const h = Math.floor(totalMinutes / 60) % 24;
+  const m = totalMinutes % 60;
   return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
 }
 

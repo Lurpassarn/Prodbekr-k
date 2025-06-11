@@ -99,16 +99,25 @@ function estimateRollCount(order) {
 
 function calculateStopTimes(order) {
   const machineId = order["Maskin id"] || "SM28";
-  const rawRollWidth = parseFloat(order["RawRollWidth"].split(",")[0]) || 0;
+  const rawRollWidthStr = order["RawRollWidth"] || "";
+  
+  if (!rawRollWidthStr) {
+    console.warn(`⚠️  Saknar RawRollWidth för order ${order["Kundorder"]}`);
+    return { normalStopTime: 15 * 60, saxningStopTime: 0 };
+  }
+  
+  const rawRollWidth = parseFloat(rawRollWidthStr.split(",")[0]) || 0;
   const rolls = estimateRollCount(order);
 
-  const normalSetupTime = 15 * 60;
-  const normalStopTime = normalSetupTime + rolls * 90;
+  const normalSetupTime = 15 * 60; // 15 minutes setup
+  const normalStopTime = normalSetupTime + rolls * 90; // 90 seconds per roll
 
-  const isSaxningEligible = (machineId === "SM27" || machineId === "SM28") && rawRollWidth <= 1035 && rolls >= 2;
-  const saxningSetupTime = 25 * 60;
+  const isSaxningEligible = (machineId === "SM27" || machineId === "SM28") && 
+                           rawRollWidth <= 1035 && rolls >= 2;
+  const saxningSetupTime = 25 * 60; // 25 minutes setup for saxning
   const numSaxningPairs = Math.ceil(rolls / 2);
-  const saxningStopTime = isSaxningEligible ? saxningSetupTime + (numSaxningPairs * 10 * 60) : 0;
+  const saxningStopTime = isSaxningEligible ? 
+    saxningSetupTime + (numSaxningPairs * 10 * 60) : 0; // 10 minutes per pair
 
   return { normalStopTime, saxningStopTime };
 }
@@ -126,20 +135,31 @@ function calculateProductionTime(order) {
   const lanes = parseFloat(order["Antal banor"]) || 1;
   const expectedWidth = parseFloat(order["Arkbredd"]) || 0;
 
-  if (gramvikt <= 0 || maxRawRollWidth <= 0 || speed <= 0) {
-    console.warn("Ogiltiga värden för order", order["Kundorder"]);
+  if (gramvikt <= 0 || maxRawRollWidth <= 0 || speed <= 0 || planeradVikt <= 0) {
+    console.warn(`⚠️  Ogiltiga värden för order ${order["Kundorder"]}:`, {
+      gramvikt, maxRawRollWidth, speed, planeradVikt
+    });
     return { normalTime: 0, saxningTime: 0 };
   }
 
   const L = (planeradVikt * 1000000) / (gramvikt * maxRawRollWidth);
-  const spillFactor = expectedWidth > 0 && maxRawRollWidth > 0 ? Math.max(0.5, 1 - (expectedWidth * lanes) / maxRawRollWidth) : 1;
-  const productionTimeMinutes = (L / speed) / spillFactor;
+  const spillFactor = expectedWidth > 0 && maxRawRollWidth > 0 ? 
+    Math.max(0.5, 1 - (expectedWidth * lanes) / maxRawRollWidth) : 1;
+  
+  // Ensure we don't divide by an invalid spillFactor
+  const adjustedSpillFactor = spillFactor > 0 ? spillFactor : 1;
+  const productionTimeMinutes = (L / speed) / adjustedSpillFactor;
   const productionTimeSeconds = productionTimeMinutes * 60;
 
   const { normalStopTime, saxningStopTime } = calculateStopTimes(order);
 
   const normalTime = (productionTimeSeconds + normalStopTime) / 60;
-  const saxningTime = (productionTimeSeconds + saxningStopTime) / 60;
+  const saxningTime = saxningStopTime > 0 ? (productionTimeSeconds + saxningStopTime) / 60 : 0;
+
+  // Add validation for reasonable times (not more than 24 hours)
+  if (normalTime > 1440) {
+    console.warn(`⚠️  Ovanligt lång produktionstid för order ${order["Kundorder"]}: ${normalTime.toFixed(2)} min`);
+  }
 
   return { normalTime, saxningTime };
 }

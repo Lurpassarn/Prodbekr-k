@@ -3,19 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SM25 Produktionsplan</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>SM25 Produktionsplan</title>    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <style>
-      .sm25-header h1, .shift-block-header b, .shift-summary-section b {
-        color: #fbbf24 !important;
-      }
-    </style>
 </head>
 <body data-machine="SM25">
-    <div class="sm25-app">
-        <aside class="sm25-sidebar">
-            <div class="sm25-logo" style="color:#fbbf24;">SM25</div>
+    <div class="sm-app">
+        <aside class="sm-sidebar">
+            <div class="sm-logo">SM25</div>
             <nav>
                 <a href="index.html" class="sidebar-link">← Tillbaka till översikt</a>
             </nav>
@@ -23,12 +17,11 @@
               <a href="SM25.html" class="nav-button">Gå till SM25</a>
               <a href="SM27.html" class="nav-button">Gå till SM27</a>
               <a href="SM28.html" class="nav-button">Gå till SM28</a>
-            </nav>
-        </aside>
-        <main class="sm25-main">
-            <header class="sm25-header">
+            </nav>        </aside>
+        <main class="sm-main">
+            <header class="sm-header">
                 <h1>SM25 Produktionsplan</h1>
-                <p class="sm25-sub">Planering och uträkning för dagens produktion. Välj skift nedan för att se detaljerad planering och summering.</p>
+                <p class="sm-sub">Planering och uträkning för dagens produktion. Välj skift nedan för att se detaljerad planering och summering.</p>
                 <div class="plan-select-wrapper">
                   <select id="planSelect" placeholder="Välj Orderlista">
                     <option value="" disabled selected hidden>Välj Orderlista</option>
@@ -44,59 +37,8 @@
             <section id="shiftsOverview" class="shifts-overview"></section>
             <section id="shiftAnalysis" class="shift-analysis-section"></section>
             <div id="ordersContainer"></div>
-        </main>
-    </div>
-    <script src="production.js"></script>
+        </main>    </div>    <script src="production.js"></script>
+    <script src="cross-machine-transfer.js"></script>
     <script src="machine.js"></script>
-    <script>
-    // --- Dynamisk rendering av skift, summering och analys ---
-    // Denna kod ska köras efter att ordrar och skiftdata är beräknade i machine.js
-    // Färger hämtas nu från CSS-variabler för att matcha index.html
-    function renderShiftsOverview(shifts) {
-        const container = document.getElementById('shiftsOverview');
-        container.innerHTML = '';
-        // Hämta färger från CSS-variabler
-        const getVar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-        const shiftColors = {
-            FM: getVar('--shift-fm') || '#1e40af',
-            EM: getVar('--shift-em') || '#2563eb',
-            Natt: getVar('--shift-natt') || '#fbbf24'
-        };
-        const shiftNames = { FM: 'FM (06:00-14:00)', EM: 'EM (14:00-22:30)', Natt: 'Natt (22:30-06:00)' };
-        Object.keys(shifts).forEach(shiftKey => {
-            const shift = shifts[shiftKey];
-            const orders = shift.orders || [];
-            const maxKgPerHour = Math.max(...Object.values(shifts).map(s=>s.kgPerHour));
-            const percent = maxKgPerHour ? Math.round((shift.kgPerHour/maxKgPerHour)*100) : 0;
-            const color = shiftColors[shiftKey];
-            const icon = shiftKey==='FM'?'🌅':shiftKey==='EM'?'🌇':'🌙';
-            const shiftDiv = document.createElement('div');
-            shiftDiv.className = 'shift-block';
-            shiftDiv.innerHTML = `
-                <div class="shift-block-header" style="color:${color}">${icon} <b>${shiftNames[shiftKey]}</b></div>
-                <div class="shift-progress-bar" style="background:${getVar('--shift-bg')||'#1e293b'}">
-                    <div class="shift-progress" style="width:${percent}%;background:${color}"></div>
-                </div>
-                <div class="shift-block-summary">
-                    <span>Ordrar: <b>${shift.totalOrders}</b></span>
-                    <span>KG: <b>${shift.totalKg.toFixed(1)}</b></span>
-                    <span>KG/TIM: <b>${shift.kgPerHour.toFixed(2)}</b></span>
-                </div>
-                <div class="shift-orders-list">
-                    ${orders.map(order => `
-                        <div class="shift-order-card">
-                            <span class="order-id">#${order['Kundorder']||order['OrderID']||''}</span>
-                            <span class="order-weight">${order['Planerad Vikt']||0} kg</span>
-                            <span class="order-time">${(order.adjustedTime/60).toFixed(2)} h</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-            container.appendChild(shiftDiv);
-        });
-    }
-    // Summering och analys renderas på liknande sätt i shiftSummary och shiftAnalysis
-    // Se till att machine.js anropar dessa render-funktioner med rätt data!
-    </script>
 </body>
 </html>
