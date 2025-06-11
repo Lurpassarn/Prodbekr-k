@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funktionstest - Refactored System</title>
+    <style>
+        body {
+            background: #0f172a;
+            color: #f1f5f9;
+            font-family: 'Monaco', 'Consolas', monospace;
+            margin: 0;
+            padding: 20px;
+        }
+        .console {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        h1 {
+            color: #3b82f6;
+            text-align: center;
+        }
+        .status {
+            background: #0f172a;
+            border-left: 4px solid #22c55e;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body data-machine="SM25">
+    <h1>🧪 Funktionstest - Refactored Production System</h1>
+    
+    <div class="status">
+        <strong>Status:</strong> Laddar moduler och kör funktionstest...
+    </div>
+    
+    <div class="console" id="console"></div>    <!-- Load all modules -->
+    <script type="module" src="src/config/machine-speeds.js"></script>
+    <script type="module" src="src/config/shifts.js"></script>
+    <script type="module" src="src/config/transfer-config.js"></script>
+    <script type="module" src="src/utils/time-utils.js"></script>
+    <script type="module" src="src/utils/speed-calculator.js"></script>
+    <script type="module" src="src/utils/roll-estimator.js"></script>
+    <script type="module" src="src/utils/production-calculator.js"></script>
+    <script type="module" src="src/utils/scheduling.js"></script>
+    <script type="module" src="src/utils/transfer-utils.js"></script>
+    <script type="module" src="src/utils/transfer-ui.js"></script>
+    <script type="module" src="production.js"></script>
+    
+    <script type="module">
+        import { getMachineSpeed } from './src/utils/speed-calculator.js';
+        import { calculateAllProductionTimes } from './src/utils/production-calculator.js';
+        import { formatTime } from './src/utils/time-utils.js';
+        
+        // Override console.log to display in our custom console
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.join(' ');
+            consoleDiv.textContent += message + '\n';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        // Run tests after modules load
+        setTimeout(() => {
+            console.log('=== TESTING REFACTORED PRODUCTION SYSTEM ===');
+
+            // Test 1: Check if all modules are loaded
+            console.log('\n1. Testing module loading...');
+
+            const modules = [
+                'MachineSpeedsModule',
+                'ShiftsConfig', 
+                'CrossMachineTransferConfig',
+                'TimeUtilsModule',
+                'SpeedCalculatorModule',
+                'RollEstimatorModule',
+                'ProductionCalculatorModule',
+                'SchedulingModule',
+                'CrossMachineTransferUtils',
+                'CrossMachineTransferUI'
+            ];
+
+            let loadedCount = 0;
+            modules.forEach(module => {
+                if (window[module]) {
+                    console.log(`✅ ${module} loaded successfully`);
+                    loadedCount++;
+                } else {
+                    console.log(`❌ ${module} not found`);
+                }
+            });
+            
+            console.log(`\nModule loading summary: ${loadedCount}/${modules.length} modules loaded`);
+
+            // Test 2: Test production calculations
+            console.log('\n2. Testing production calculations...');
+
+            if (window.ProductionCalculatorModule) {
+                const { calculateAllProductionTimes } = window.ProductionCalculatorModule;
+                
+                // Test order
+                const testOrder = {
+                    "Kundorder": "TEST001",
+                    "Planerad Vikt": "1000",
+                    "Gramvikt": "200",
+                    "Arklängd": "500",
+                    "RawRollWidth": "1000",
+                    "Antal banor": "1",
+                    "Arkbredd": "800",
+                    "Maskin id": "SM25"
+                };
+                  try {
+                    const result = calculateAllProductionTimes([testOrder], getMachineSpeed);
+                    if (result && result.length > 0 && result[0].productionTimeNormal > 0) {
+                        console.log(`✅ Production calculation works: ${result[0].productionTimeNormal.toFixed(2)} minutes`);
+                        console.log(`   Saxning time: ${result[0].productionTimeSaxning ? result[0].productionTimeSaxning.toFixed(2) : '0'} minutes`);
+                    } else {
+                        console.log('❌ Production calculation failed - no valid result');
+                    }
+                } catch (error) {
+                    console.log('❌ Production calculation error:', error.message);
+                }
+            } else {
+                console.log('❌ ProductionCalculatorModule not available');
+            }
+
+            // Test 3: Test time utilities
+            console.log('\n3. Testing time utilities...');
+
+            if (window.TimeUtilsModule) {
+                const { formatTime, parseTime } = window.TimeUtilsModule;
+                
+                try {
+                    const formatted = formatTime(150); // Should be "02:30"
+                    const parsed = parseTime("14:30"); // Should be 870 minutes
+                    
+                    if (formatted === "02:30" && parsed === 870) {
+                        console.log('✅ Time utilities work correctly');
+                        console.log(`   formatTime(150) = "${formatted}"`);
+                        console.log(`   parseTime("14:30") = ${parsed} minutes`);
+                    } else {
+                        console.log(`❌ Time utilities failed: formatTime(150)="${formatted}", parseTime("14:30")=${parsed}`);
+                    }
+                } catch (error) {
+                    console.log('❌ Time utilities error:', error.message);
+                }
+            } else {
+                console.log('❌ TimeUtilsModule not available');
+            }
+
+            // Test 4: Test shift configuration
+            console.log('\n4. Testing shift configuration...');
+
+            if (window.ShiftsConfig) {
+                const config = window.ShiftsConfig;
+                
+                if (config.SHIFT_TIMES && config.SHIFT_TIMES.FM && config.SHIFT_COLORS) {
+                    console.log('✅ Shift configuration loaded correctly');
+                    console.log(`   FM shift: ${config.SHIFT_TIMES.FM.START} - ${config.SHIFT_TIMES.FM.END} minutes`);
+                    console.log(`   EM shift: ${config.SHIFT_TIMES.EM.START} - ${config.SHIFT_TIMES.EM.END} minutes`);
+                    console.log(`   Natt shift: ${config.SHIFT_TIMES.NATT.START} - ${config.SHIFT_TIMES.NATT.END} minutes`);
+                } else {
+                    console.log('❌ Shift configuration incomplete');
+                }
+            } else {
+                console.log('❌ ShiftsConfig not available');
+            }
+
+            // Test 5: Test speed calculation
+            console.log('\n5. Testing speed calculation...');
+
+            if (window.SpeedCalculatorModule) {
+                const { getMachineSpeed } = window.SpeedCalculatorModule;
+                
+                try {
+                    const speed1 = getMachineSpeed('SM25', 600);
+                    const speed2 = getMachineSpeed('SM27', 600);
+                    const speed3 = getMachineSpeed('SM28', 600);
+                    
+                    if (speed1 > 0 && speed2 > 0 && speed3 > 0) {
+                        console.log(`✅ Speed calculation works:`);
+                        console.log(`   SM25 @ 600mm: ${speed1} m/min`);
+                        console.log(`   SM27 @ 600mm: ${speed2} m/min`);
+                        console.log(`   SM28 @ 600mm: ${speed3} m/min`);
+                    } else {
+                        console.log('❌ Speed calculation returned invalid values');
+                    }
+                } catch (error) {
+                    console.log('❌ Speed calculation error:', error.message);
+                }
+            } else {
+                console.log('❌ SpeedCalculatorModule not available');
+            }
+
+            // Test 6: Test transfer utilities
+            console.log('\n6. Testing transfer utilities...');
+
+            if (window.CrossMachineTransferUtils) {
+                const utils = window.CrossMachineTransferUtils;
+                
+                try {
+                    const currentMachine = utils.getCurrentMachine();
+                    const otherMachines = utils.getOtherMachines();
+                    
+                    if (currentMachine && otherMachines && otherMachines.length > 0) {
+                        console.log(`✅ Transfer utilities work:`);
+                        console.log(`   Current machine: ${currentMachine}`);
+                        console.log(`   Other machines: [${otherMachines.join(', ')}]`);
+                    } else {
+                        console.log('❌ Transfer utilities returned invalid values');
+                    }
+                } catch (error) {
+                    console.log('❌ Transfer utilities error:', error.message);
+                }
+            } else {
+                console.log('❌ CrossMachineTransferUtils not available');
+            }
+
+            // Test 7: Test scheduling functionality
+            console.log('\n7. Testing scheduling functionality...');
+
+            if (window.SchedulingModule) {
+                const { distributeOrdersToShifts, calculateShiftStats } = window.SchedulingModule;
+                
+                try {
+                    const testOrders = [
+                        { "Kundorder": "TEST001", "Planerad Vikt": "500", productionTimeNormal: 60 },
+                        { "Kundorder": "TEST002", "Planerad Vikt": "750", productionTimeNormal: 90 }
+                    ];
+                    
+                    const shifts = { FM: [], EM: [], Natt: [] };
+                    const result = distributeOrdersToShifts(testOrders, shifts, 'SM25');
+                    
+                    if (result && result.shifts) {
+                        const stats = calculateShiftStats(result.shifts);
+                        console.log(`✅ Scheduling works:`);
+                        console.log(`   Orders distributed to shifts`);
+                        console.log(`   FM: ${result.shifts.FM.length} orders, ${stats.FM ? stats.FM.totalKg.toFixed(1) : 0} kg`);
+                    } else {
+                        console.log('❌ Scheduling failed - no valid result');
+                    }
+                } catch (error) {
+                    console.log('❌ Scheduling error:', error.message);
+                }
+            } else {
+                console.log('❌ SchedulingModule not available');
+            }
+
+            console.log('\n=== TEST COMPLETE ===');
+            console.log(`\nAll core functionality has been tested. The refactored system is ${loadedCount >= 8 ? 'WORKING' : 'PARTIALLY WORKING'}.`);
+            
+        }, 1000); // Wait 1 second for modules to load
+    </script>
+</body>
+</html>

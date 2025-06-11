@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Machine Transfer Test</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .test-section {
+            background: var(--card-bg);
+            border: var(--border);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-family: monospace;
+        }
+        .success { background: rgba(34, 197, 94, 0.2); border-left: 4px solid #22c55e; }
+        .error { background: rgba(239, 68, 68, 0.2); border-left: 4px solid #ef4444; }
+        .info { background: rgba(59, 130, 246, 0.2); border-left: 4px solid #3b82f6; }
+        
+        .mock-sidebar {
+            width: 200px;
+            float: right;
+            background: var(--card-bg);
+            border: var(--border);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin: 0 0 20px 20px;
+        }
+        
+        .mock-order {
+            background: var(--primary);
+            color: white;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 6px;
+            cursor: grab;
+            user-select: none;
+        }
+        
+        .mock-order:active {
+            cursor: grabbing;
+        }
+        
+        .machine-btn {
+            display: block;
+            width: 100%;
+            background: var(--card-bg);
+            border: var(--border);
+            color: var(--text);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        
+        .machine-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .transfer-mode-active {
+            border-color: var(--accent) !important;
+            box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3);
+        }
+        
+        .transfer-drop-target {
+            background: var(--accent) !important;
+            color: var(--bg) !important;
+        }
+    </style>
+</head>
+<body data-machine="SM25">
+    <div class="test-container">
+        <h1>🔄 Cross-Machine Transfer Test</h1>
+        
+        <div class="mock-sidebar">
+            <h3>📦 Transfer Center</h3>
+            <div id="transferToggle" class="machine-btn" style="background: var(--accent); color: var(--bg);">
+                🔄 Aktivera Transfer Mode
+            </div>
+            
+            <h4>Destination Machines:</h4>
+            <a href="#" class="machine-btn machine-transfer-target" data-target-machine="SM27">
+                🏭 SM27
+            </a>
+            <a href="#" class="machine-btn machine-transfer-target" data-target-machine="SM28">
+                🏭 SM28
+            </a>
+            
+            <h4>Test Order:</h4>
+            <div class="mock-order" draggable="true" data-order='{"Kundorder":"TEST001","Planerad Vikt":"1000"}'>
+                📦 TEST001 (1000kg)
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test Results</h2>
+            <div id="testResults"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Manual Transfer Test</h2>
+            <p>1. Click "Aktivera Transfer Mode" above</p>
+            <p>2. Drag the test order to one of the machine buttons (SM27 or SM28)</p>
+            <p>3. Check the results below</p>
+        </div>
+        
+        <div class="test-section">
+            <h2>Pending Transfers</h2>
+            <div id="pendingTransfers"></div>
+        </div>
+    </div>    <!-- Load all modules -->
+    <script type="module" src="src/config/machine-speeds.js"></script>
+    <script type="module" src="src/config/shifts.js"></script>
+    <script type="module" src="src/config/transfer-config.js"></script>
+    <script type="module" src="src/utils/time-utils.js"></script>
+    <script type="module" src="src/utils/speed-calculator.js"></script>
+    <script type="module" src="src/utils/roll-estimator.js"></script>
+    <script type="module" src="src/utils/production-calculator.js"></script>
+    <script type="module" src="src/utils/scheduling.js"></script>
+    <script type="module" src="src/utils/transfer-utils.js"></script>
+    <script type="module" src="src/utils/transfer-ui.js"></script>
+    <script type="module" src="production.js"></script>
+    <script type="module" src="cross-machine-transfer.js"></script>
+    
+    <script type="module">
+        let isTransferMode = false;
+        const resultsDiv = document.getElementById('testResults');
+        const pendingDiv = document.getElementById('pendingTransfers');
+        
+        function logResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            resultsDiv.appendChild(div);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+        
+        // Test transfer module loading
+        setTimeout(() => {
+            logResult('Testing Cross-Machine Transfer System...', 'info');
+            
+            // Test 1: Module availability
+            if (window.CrossMachineTransferUtils) {
+                logResult('✅ CrossMachineTransferUtils loaded', 'success');
+            } else {
+                logResult('❌ CrossMachineTransferUtils not found', 'error');
+            }
+            
+            if (window.CrossMachineTransferUI) {
+                logResult('✅ CrossMachineTransferUI loaded', 'success');
+            } else {
+                logResult('❌ CrossMachineTransferUI not found', 'error');
+            }
+            
+            if (window.CrossMachineTransferConfig) {
+                logResult('✅ CrossMachineTransferConfig loaded', 'success');
+            } else {
+                logResult('❌ CrossMachineTransferConfig not found', 'error');
+            }
+            
+            // Test 2: Basic functionality
+            if (window.CrossMachineTransferUtils) {
+                const utils = window.CrossMachineTransferUtils;
+                const currentMachine = utils.getCurrentMachine();
+                const otherMachines = utils.getOtherMachines();
+                
+                logResult(`Current machine: ${currentMachine}`, 'info');
+                logResult(`Other machines: ${otherMachines.join(', ')}`, 'info');
+                
+                // Test pending transfers
+                const pending = utils.loadPendingTransfers();
+                logResult(`Loaded pending transfers: ${Object.keys(pending).length} machines`, 'info');
+            }
+            
+            // Test 3: Transfer mode toggle
+            const toggleBtn = document.getElementById('transferToggle');
+            toggleBtn.addEventListener('click', () => {
+                isTransferMode = !isTransferMode;
+                toggleBtn.textContent = isTransferMode ? '✅ Transfer Mode ON' : '🔄 Aktivera Transfer Mode';
+                toggleBtn.style.background = isTransferMode ? 'var(--primary)' : 'var(--accent)';
+                
+                // Update machine buttons
+                document.querySelectorAll('.machine-transfer-target').forEach(btn => {
+                    if (isTransferMode) {
+                        btn.classList.add('transfer-mode-active');
+                        btn.title = `Drop orders here to transfer to ${btn.dataset.targetMachine}`;
+                    } else {
+                        btn.classList.remove('transfer-mode-active');
+                        btn.title = '';
+                    }
+                });
+                
+                logResult(`Transfer mode ${isTransferMode ? 'activated' : 'deactivated'}`, 'success');
+            });
+            
+            // Test 4: Setup drag and drop
+            const mockOrder = document.querySelector('.mock-order');
+            mockOrder.addEventListener('dragstart', (e) => {
+                if (!isTransferMode) {
+                    e.preventDefault();
+                    logResult('❌ Cannot drag - transfer mode not active', 'error');
+                    return;
+                }
+                
+                e.dataTransfer.setData('text/plain', 'test-order');
+                e.dataTransfer.setData('orderData', mockOrder.dataset.order);
+                e.dataTransfer.setData('shift', 'FM');
+                e.dataTransfer.setData('index', '0');
+                
+                logResult('📦 Started dragging test order', 'info');
+            });
+            
+            // Setup drop zones
+            document.querySelectorAll('.machine-transfer-target').forEach(btn => {
+                btn.addEventListener('dragover', (e) => {
+                    if (!isTransferMode) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    btn.classList.add('transfer-drop-target');
+                });
+                
+                btn.addEventListener('dragleave', (e) => {
+                    if (!isTransferMode) return;
+                    if (!btn.contains(e.relatedTarget)) {
+                        btn.classList.remove('transfer-drop-target');
+                    }
+                });
+                
+                btn.addEventListener('drop', (e) => {
+                    if (!isTransferMode) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    btn.classList.remove('transfer-drop-target');
+                    
+                    const orderData = e.dataTransfer.getData('orderData');
+                    const targetMachine = btn.dataset.targetMachine;
+                    
+                    if (orderData && targetMachine) {
+                        try {
+                            const order = JSON.parse(orderData);
+                            testTransferOrder(order, targetMachine);
+                        } catch (error) {
+                            logResult(`❌ Transfer failed: ${error.message}`, 'error');
+                        }
+                    }
+                });
+            });
+            
+            function testTransferOrder(order, targetMachine) {
+                logResult(`🚀 Testing transfer of ${order.Kundorder} to ${targetMachine}`, 'info');
+                
+                if (window.CrossMachineTransferUtils) {
+                    const utils = window.CrossMachineTransferUtils;
+                    
+                    try {
+                        // Create transfer
+                        const transfer = utils.createTransfer(order, 'SM25', 'FM');
+                        logResult(`✅ Created transfer object with ID: ${transfer.id}`, 'success');
+                        
+                        // Add to pending transfers
+                        let pending = utils.loadPendingTransfers();
+                        pending = utils.addPendingTransfer(targetMachine, transfer, pending);
+                        utils.savePendingTransfers(pending);
+                        
+                        logResult(`✅ Transfer saved to localStorage for ${targetMachine}`, 'success');
+                        
+                        // Update display
+                        updatePendingDisplay();
+                        
+                    } catch (error) {
+                        logResult(`❌ Transfer failed: ${error.message}`, 'error');
+                    }
+                } else {
+                    logResult('❌ Transfer utilities not available', 'error');
+                }
+            }
+            
+            function updatePendingDisplay() {
+                if (!window.CrossMachineTransferUtils) return;
+                
+                const utils = window.CrossMachineTransferUtils;
+                const pending = utils.loadPendingTransfers();
+                
+                pendingDiv.innerHTML = '<h3>Current Pending Transfers:</h3>';
+                
+                if (Object.keys(pending).length === 0) {
+                    pendingDiv.innerHTML += '<p>No pending transfers</p>';
+                } else {
+                    Object.entries(pending).forEach(([machine, transfers]) => {
+                        const machineDiv = document.createElement('div');
+                        machineDiv.innerHTML = `
+                            <h4>${machine} (${transfers.length} transfers)</h4>
+                            ${transfers.map(t => `
+                                <div style="background: var(--card-bg); padding: 10px; margin: 5px 0; border-radius: 6px;">
+                                    📦 ${t.order.Kundorder} from ${t.fromMachine} (${new Date(t.timestamp).toLocaleTimeString()})
+                                </div>
+                            `).join('')}
+                        `;
+                        pendingDiv.appendChild(machineDiv);
+                    });
+                }
+            }
+            
+            // Initial pending display
+            updatePendingDisplay();
+            
+            logResult('🎯 Cross-machine transfer test setup complete!', 'success');
+            logResult('Try activating transfer mode and dragging the test order!', 'info');
+            
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+/* =================================================================== */
+/* ORDER AND LIST STYLES                                            */
+/* =================================================================== */
+
+/* Orders List */
+.orders-list {
+  background: rgba(15, 23, 42, 0.5);
+  border: var(--border);
+  border-radius: var(--border-radius);
+  padding: 12px;
+  min-height: 80px;
+  backdrop-filter: blur(5px);
+  transition: var(--transition);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.orders-list:empty::before {
+  content: "Inga ordrar";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  color: var(--muted);
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+/* Order Cards */
+.order-row {
+  width: 100%;
+  cursor: grab;
+  transition: var(--transition-fast);
+  margin-bottom: 0;
+}
+
+.order-row:active {
+  cursor: grabbing;
+}
+
+.order-row[draggable="true"] {
+  cursor: grab;
+}
+
+.order-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: var(--border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  padding: 12px;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.order-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  opacity: 0.8;
+}
+
+.order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.order-card-header:hover {
+  background: rgba(251, 191, 36, 0.1);
+  border-radius: var(--border-radius);
+  padding: 4px 8px;
+  margin: -4px -8px 10px -8px;
+}
+
+.order-id {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--accent);
+  text-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+
+.order-time {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.15);
+  padding: 4px 8px;
+  border-radius: var(--border-radius);
+}
+
+.order-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.order-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-label {
+  font-size: 0.8em;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 50px;
+}
+
+.detail-value {
+  font-size: 1em;
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+}

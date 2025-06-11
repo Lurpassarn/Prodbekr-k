@@ -1,0 +1,15 @@
+/* =================================================================== */
+/* PRODUCTION MANAGEMENT SYSTEM - MODULAR CSS                       */
+/* =================================================================== */
+
+/* Import modular stylesheets */
+@import url('./src/styles/variables.css');
+@import url('./src/styles/base.css');
+@import url('./src/styles/layout.css');
+@import url('./src/styles/components.css');
+@import url('./src/styles/orders.css');
+@import url('./src/styles/drag-drop.css');
+@import url('./src/styles/transfer.css');
+@import url('./src/styles/overflow.css');
+@import url('./src/styles/utilities.css');
+@import url('./src/styles/responsive.css');

@@ -1,0 +1,75 @@
+/* =================================================================== */
+/* RESPONSIVE DESIGN AND MEDIA QUERIES                              */
+/* =================================================================== */
+
+/* Responsive design för transfer functionality */
+@media (max-width: 1200px) {
+  .shifts-container {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .shift-container-static {
+    flex: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .sm-app {
+    flex-direction: column;
+  }
+  
+  .sm-sidebar {
+    width: 100%;
+    min-height: auto;
+    border-radius: 0;
+    padding: 20px 0;
+  }
+  
+  .sm-main {
+    padding: 20px 16px;
+  }
+  
+  .orders-wrapper {
+    margin: 20px 16px;
+    padding: 16px;
+  }
+  
+  .shift-container-static {
+    padding: 12px;
+  }
+  
+  .order-card {
+    padding: 10px;
+  }
+  
+  .order-card-header {
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+  
+  .transfer-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .transfer-status-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .transfer-item {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .transfer-message {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    padding: 10px 16px;
+  }
+}

@@ -1,0 +1,178 @@
+/* =================================================================== */
+/* LAYOUT STYLES - CONTAINERS, GRIDS, AND POSITIONING               */
+/* =================================================================== */
+
+/* Main containers */
+.main-hub {
+  background: var(--card-gradient);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-elevated);
+  border: var(--border);
+  margin: 20px auto;
+  padding: 40px;
+  max-width: 1400px;
+  width: 92vw;
+  min-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  align-items: center;
+  backdrop-filter: blur(10px);
+}
+
+/* Headers */
+.main-header,
+.planner-header,
+.sm-header {
+  text-align: center;
+  margin-bottom: 18px;
+  padding: 40px 48px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: var(--border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.main-header::before,
+.planner-header::before,
+.sm-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--primary-gradient);
+}
+
+.main-header h1,
+.planner-header h1,
+.sm-header h1 {
+  font-size: 3.2rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 16px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  letter-spacing: -1px;
+}
+
+.main-header p,
+.planner-header p,
+.sm-header p {
+  font-size: 1.3rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* SM Pages Layout */
+.sm-app {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  width: 100vw;
+  background: var(--bg);
+  gap: 0;
+}
+
+.sm-sidebar {
+  width: 280px;
+  background: var(--sidebar-gradient);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  padding: 40px 0 32px 0;
+  min-height: 100vh;
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  box-shadow: var(--shadow-elevated);
+  border: var(--border);
+  border-left: none;
+  gap: 32px;
+}
+
+.sm-main {
+  flex: 1;
+  padding: 40px 48px;
+  overflow-y: auto;
+}
+
+.sm-logo {
+  font-size: 3em;
+  font-weight: 900;
+  text-align: center;
+  margin-bottom: 32px;
+  background: var(--primary-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Orders Container */
+.orders-wrapper {
+  width: 100%;
+  max-width: 1400px;
+  margin: 32px auto;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: var(--border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-elevated);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.orders-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--primary-gradient);
+  opacity: 0.8;
+}
+
+.orders-header {
+  text-align: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: var(--border);
+}
+
+.orders-header h3 {
+  font-size: 1.8em;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 8px;
+  text-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+
+.orders-header p {
+  font-size: 1.1em;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Shifts Container (Horizontal Layout) */
+.shifts-container {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+  align-items: stretch;
+}
+
+/* Shift Overview */
+.shifts-overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin: 32px 0 24px 0;
+  justify-content: center;
+}

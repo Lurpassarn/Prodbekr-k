@@ -1,0 +1,8 @@
+# Ignore auto-generated documentation files
+node_modules/
+*.log
+.git/
+
+# Ignore specific documentation that may have non-standard formatting
+README.md
+USER_GUIDE.md

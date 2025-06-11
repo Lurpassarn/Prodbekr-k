@@ -1,0 +1,51 @@
+/* =================================================================== */
+/* DRAG AND DROP FUNCTIONALITY                                      */
+/* =================================================================== */
+
+/* Drag and Drop */
+.order-row.dragging .order-card {
+  opacity: 0.3;
+  transform: scale(0.95);
+  border: 2px dashed var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.drag-placeholder {
+  background-color: #e0e0e0;
+  border: 2px dashed #aaaaaa;
+  height: 50px;
+  margin: 5px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555555;
+  font-style: italic;
+}
+
+.drag-placeholder .drop-arrow {
+  margin-right: 8px;
+  font-size: 1.5em;
+  color: #3498db;
+}
+
+.dropzone-active-highlight {
+  background-color: #d6eaff !important;
+  border: 1px solid #3498db;
+  box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+}
+
+.drag-ghost {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.75;
+  border: 1px solid #3498db;
+  background-color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.orders-list.drag-target {
+  background-color: #f0f8ff;
+}

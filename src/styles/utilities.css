@@ -1,0 +1,11 @@
+/* =================================================================== */
+/* UTILITY CLASSES AND HELPERS                                      */
+/* =================================================================== */
+
+/* Utilities */
+.summary-item,
+.shift-block,
+.order-entry-modern {
+  background: var(--card-bg);
+  color: var(--text);
+}

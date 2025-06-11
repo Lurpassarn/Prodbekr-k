@@ -22,11 +22,21 @@
             </section>
         </main>
         <footer class="guidance">
-            &copy; 2025 Produktionsöversikt – SM25, SM27, SM28
-        </footer>    </div>
-    <script src="production.js"></script>
-    <script src="drag-helpers.js"></script>
-    <script>
+            &copy; 2025 Produktionsöversikt – SM25, SM27, SM28        </footer>    </div>    <script type="module" src="src/config/machine-speeds.js"></script>
+    <script type="module" src="src/config/shifts.js"></script>
+    <script type="module" src="src/config/transfer-config.js"></script>
+    <script type="module" src="src/utils/time-utils.js"></script>
+    <script type="module" src="src/utils/speed-calculator.js"></script>
+    <script type="module" src="src/utils/roll-estimator.js"></script>
+    <script type="module" src="src/utils/production-calculator.js"></script>
+    <script type="module" src="src/utils/scheduling.js"></script>
+    <script type="module" src="src/utils/transfer-utils.js"></script>
+    <script type="module" src="src/utils/transfer-ui.js"></script>
+    <script type="module" src="production.js"></script>    <script type="module">
+        import { SHIFT_DEFINITIONS } from './src/config/shifts.js';
+        import { calculateAllProductionTimes } from './src/utils/production-calculator.js';
+        import { getMachineSpeed } from './src/utils/speed-calculator.js';
+        
         async function loadSummary() {
             const machines = ['SM25', 'SM27', 'SM28'];
             const summaries = {};
@@ -34,16 +44,19 @@
             for (const machine of machines) {
                 const response = await fetch(`${machine}.json`);
                 const orders = await response.json();
-                const ordersWithTimes = calculateAllProductionTimes(orders);
+                const ordersWithTimes = calculateAllProductionTimes(orders, getMachineSpeed);
                 // Dynamisk summering per skift, exakt som på maskinsidorna
-                const shifts = { FM: [], EM: [], Natt: [] };
-                const shiftLimits = {
-                    FM: 14 * 60, // 06:00-14:00
-                    EM: 22.5 * 60, // 14:00-22:30
-                    Natt: 30 * 60 // 22:30-06:00 (nästa dag)
+                const shifts = { FM: [], EM: [], Natt: [] };                const shiftLimits = {
+                    FM: SHIFT_DEFINITIONS.FM.end,
+                    EM: SHIFT_DEFINITIONS.EM.end,
+                    Natt: SHIFT_DEFINITIONS.Natt.end
                 };
                 let usedMinutes = 0;
-                let shiftCurrent = { FM: 6 * 60, EM: 14 * 60, Natt: 22.5 * 60 };
+                let shiftCurrent = {
+                    FM: SHIFT_DEFINITIONS.FM.start,
+                    EM: SHIFT_DEFINITIONS.EM.start,
+                    Natt: SHIFT_DEFINITIONS.Natt.start
+                };
                 for (let shiftKey of ['FM', 'EM', 'Natt']) {
                     let shiftStart = shiftCurrent[shiftKey];
                     let shiftEnd = shiftLimits[shiftKey];

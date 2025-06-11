@@ -1,0 +1,38 @@
+/* =================================================================== */
+/* CSS VARIABLES AND THEME CONFIGURATION                            */
+/* =================================================================== */
+
+:root {
+  /* Grundfärger */
+  --primary: #3b82f6;
+  --primary-dark: #1e293b;
+  --accent: #fbbf24;
+  --bg: #0f172a;
+  --card-bg: #1e293b;
+  --text: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --muted: #64748b;
+  
+  /* Skift-färger */
+  --shift-fm: #3b82f6;
+  --shift-em: #8b5cf6;
+  --shift-natt: #f59e0b;
+  
+  /* Effekter */
+  --glass-bg: rgba(30, 41, 59, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --shadow: 0 4px 24px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2);
+  --shadow-hover: 0 12px 40px rgba(59, 130, 246, 0.3), 0 6px 20px rgba(0, 0, 0, 0.25);
+  --border: 1px solid rgba(255, 255, 255, 0.1);
+  --border-radius: 12px;
+  
+  /* Gradienter */
+  --primary-gradient: linear-gradient(135deg, #3b82f6, #1e40af);
+  --card-gradient: linear-gradient(145deg, #1e293b, #0f172a);
+  --sidebar-gradient: linear-gradient(180deg, #1e293b, #0f172a);
+  
+  /* Transitions */
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}

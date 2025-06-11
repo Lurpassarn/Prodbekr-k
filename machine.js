@@ -1,42 +1,49 @@
-// Generic machine page logic - Updated version with static shifts
-(function(){
-  const machineId = document.body.dataset.machine || "SM25";
-  let isPaused = false;
-  let pauseStartTime = 0;
-  let totalPauseTime = 0;  let currentShifts = { FM: [], EM: [], Natt: [] };
-  let manualStops = [];
-  let overflowOrders = []; // Orders that don't fit in any shift
+// Generic machine page logic - ES6 Module Version
+import { SHIFT_DEFINITIONS } from './src/config/shifts.js';
+import { distributeOrdersToShifts, calculateShiftStats } from './src/utils/scheduling.js';
+import { calculateAllProductionTimes } from './src/utils/production-calculator.js';
+import { getMachineSpeed } from './src/utils/speed-calculator.js';
+import { formatTime, parseTime } from './src/utils/time-utils.js';
 
-  // Expose functions and variables globally for cross-machine transfer
-  window.currentShifts = currentShifts;
-  window.recalcSchedule = recalcSchedule;
-  window.renderPage = renderPage;
-  window.loadOrders = loadOrders;
+const machineId = document.body.dataset.machine || "SM25";
+let isPaused = false;
+let pauseStartTime = 0;
+let totalPauseTime = 0;
+let currentShifts = { FM: [], EM: [], Natt: [] };
+let manualStops = [];
+let overflowOrders = []; // Orders that don't fit in any shift
 
-  function getSavedPlans(){
-    const data = JSON.parse(localStorage.getItem("savedPlans")||"{}");
-    return data[machineId] || {};
-  }
+// Expose functions and variables globally for cross-machine transfer
+window.currentShifts = currentShifts;
+window.recalcSchedule = recalcSchedule;
+window.renderPage = renderPage;
+window.loadOrders = loadOrders;
 
-  function populatePlanSelect(){
-    const sel = document.getElementById("planSelect");
-    if(!sel) return;
-    const plans = getSavedPlans();
-    sel.innerHTML = "<option value=\"\">Genererad plan</option>";
-    Object.keys(plans).forEach(n=>{
-      const opt=document.createElement("option");
-      opt.value=n; opt.textContent=n; sel.appendChild(opt);
-    });
-  }  async function loadOrders() {
-    try {
-      const response = await fetch(`${machineId}.json`);
-      let orders = await response.json();
-      
-      const planSel = document.getElementById("planSelect");
-      if(planSel && planSel.value){
-        const plans = getSavedPlans();
-        const plan = plans[planSel.value];
-        if(plan){
+function getSavedPlans(){
+  const data = JSON.parse(localStorage.getItem("savedPlans")||"{}");
+  return data[machineId] || {};
+}
+function populatePlanSelect(){
+  const sel = document.getElementById("planSelect");
+  if(!sel) return;
+  const plans = getSavedPlans();
+  sel.innerHTML = "<option value=\"\">Genererad plan</option>";
+  Object.keys(plans).forEach(n=>{
+    const opt=document.createElement("option");
+    opt.value=n; opt.textContent=n; sel.appendChild(opt);
+  });
+}
+
+async function loadOrders() {
+  try {
+    const response = await fetch(`${machineId}.json`);
+    let orders = await response.json();
+    
+    const planSel = document.getElementById("planSelect");
+    if(planSel && planSel.value){
+      const plans = getSavedPlans();
+      const plan = plans[planSel.value];
+      if(plan){
           const map = {};
           orders.forEach(o=>map[o["Kundorder"]]=o);
           const ids=new Set();
@@ -44,120 +51,104 @@
           Object.values(map).forEach(o=>{ if(!ids.has(o["Kundorder"])) orders.push(o); });
         }
       }      
-      const ordersWithTimes = calculateAllProductionTimes(orders);
+        // Use modular production calculator
+      const ordersWithTimes = calculateAllProductionTimes ? 
+        calculateAllProductionTimes(orders, getMachineSpeed) : 
+        orders; // Fallback if module not loaded
       
-      // Skiftindelning
-      const shifts = { FM: [], EM: [], Natt: [] };
-      const shiftLimits = { FM: 14 * 60, EM: 22.5 * 60, Natt: 30 * 60 };
-      let usedMinutes = 0;
-    let shiftCurrent = { FM: 6 * 60, EM: 14 * 60, Natt: 22.5 * 60 };
-    for (let shiftKey of ["FM","EM","Natt"]) {
-      let shiftStart = shiftCurrent[shiftKey];
-      let shiftEnd = shiftLimits[shiftKey];
-      for (let i=0;i<ordersWithTimes.length;i++) {
-        const order = ordersWithTimes[i];
-        if (order._scheduled) continue;
-        const time = order.productionTimeNormal || order.productionTimeSaxning || 0;
-        let realStart = shiftStart;
-        let realEnd = shiftStart + time;
-        if (realStart >= 1440) realStart -= 1440;
-        if (realEnd >= 1440) realEnd -= 1440;
-        if (shiftKey === "Natt" && !(realStart >= 1350 || realEnd <= 360)) continue;
-        if (shiftStart + time > shiftEnd) continue;
-        order.startTime = realStart;
-        order.endTime = realEnd;
-        order.shift = shiftKey;
-        order.adjustedTime = time;
-        order.speed = getMachineSpeed(machineId, parseFloat(order["Arklängd"]) || 0);
-        shifts[shiftKey].push(order);
-        order._scheduled = true;
-        shiftStart = order.endTime >= 1440 ? order.endTime - 1440 : order.endTime;
-        usedMinutes += time;
-        if (usedMinutes >= 24 * 60) break;
+      // Use modular scheduling system
+      currentShifts = { FM: [], EM: [], Natt: [] }; // Clear shifts
+      overflowOrders = []; // Clear overflow before new distribution
+
+      if (distributeOrdersToShifts) {
+        // Use the new modular distribution function
+        const result = distributeOrdersToShifts(ordersWithTimes, currentShifts, machineId);
+        overflowOrders = result.overflowOrders || [];
+        currentShifts = result.shifts || currentShifts;
+      } else {
+        // Fallback: simple distribution without overflow handling
+        console.warn('Scheduling module not loaded, using fallback');
+        ordersWithTimes.forEach(order => {
+          currentShifts.FM.push(order); // Put all in FM as fallback
+        });
       }
-      if (usedMinutes >= 24 * 60) break;
-    }
-    // Summera per skift
-    const shiftStats = {};
-    Object.keys(shifts).forEach(shift => {
-      const totalKg = shifts[shift].reduce((acc, order) => acc + parseFloat(order["Planerad Vikt"] || 0), 0);
-      const totalOrders = shifts[shift].length;
-      const totalTime = shifts[shift].reduce((acc, order) => acc + order.adjustedTime, 0);
-      const kgPerHour = totalTime > 0 ? (totalKg / (totalTime / 60)) : 0;
-      shiftStats[shift] = {
-        totalKg,
-        totalOrders,
-        totalTime,
-        kgPerHour,
-        orders: shifts[shift]
+        // Calculate shift statistics using modular function or fallback
+      const shiftStats = calculateShiftStats ? 
+        calculateShiftStats(currentShifts) : 
+        calculateShiftStats(currentShifts);
+        
+      // Ensure productionTime is set for all orders
+      currentShifts = {
+        FM: currentShifts.FM.map(o => ({ ...o, productionTime: o.adjustedTime || o.productionTime || 0 })),
+        EM: currentShifts.EM.map(o => ({ ...o, productionTime: o.adjustedTime || o.productionTime || 0 })),
+        Natt: currentShifts.Natt.map(o => ({ ...o, productionTime: o.adjustedTime || o.productionTime || 0 }))
       };
-    });
-    currentShifts = {
-      FM: shifts.FM.map(o => ({ ...o, productionTime: o.adjustedTime })),
-      EM: shifts.EM.map(o => ({ ...o, productionTime: o.adjustedTime })),
-      Natt: shifts.Natt.map(o => ({ ...o, productionTime: o.adjustedTime }))    };
-    recalcSchedule();
-    checkAndHandleOverflow(); // Check for overflow orders after initial scheduling
-    renderPage();
-    // Rendera visuella skiftblock
-    if(window.renderShiftsOverview) {
-      // Patch: override renderShiftsOverview to use formatTime for order times and remove hashtag
-      window.renderShiftsOverview = function(shifts) {
-        const container = document.getElementById("shiftsOverview");
-        container.innerHTML = "";
-        // Hämta färger från CSS-variabler istället för hårdkodade värden
-        const getVar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-        const shiftColors = {
-          FM: getVar("--shift-fm") || "#2563eb",
-          EM: getVar("--shift-em") || "#60a5fa",
-          Natt: getVar("--shift-natt") || "#fbbf24"
-        };
-        const shiftNames = { FM: "FM (06:00-14:00)", EM: "EM (14:00-22:30)", Natt: "Natt (22:30-06:00)" };
-        Object.keys(shifts).forEach(shiftKey => {
-            const shift = shifts[shiftKey];
-            const orders = shift.orders || [];
-            const maxKgPerHour = Math.max(...Object.values(shifts).map(s=>s.kgPerHour));
-            const percent = maxKgPerHour ? Math.round((shift.kgPerHour/maxKgPerHour)*100) : 0;
-            const color = shiftColors[shiftKey];
-            const icon = shiftKey==="FM"?"🌅":shiftKey==="EM"?"🌇":"🌙";
-            const shiftDiv = document.createElement("div");
-            shiftDiv.className = "shift-block";
-            shiftDiv.innerHTML = `
-                <div class="shift-block-header" style="color:${color}">${icon} <b>${shiftNames[shiftKey]}</b></div>
-                <div class="shift-progress-bar" style="background:#3b82f6">
-                    <div class="shift-progress" style="width:${percent}%;background:${color}"></div>
-                </div>
-                <div class="shift-block-summary">
-                    <span>Ordrar: <b>${shift.totalOrders}</b></span>
-                    <span>KG: <b>${shift.totalKg.toFixed(1)}</b></span>
-                    <span>KG/TIM: <b>${shift.kgPerHour.toFixed(2)}</b></span>
-                </div>
-                <div class="shift-orders-list">
-                    ${orders.map(order => `
-                        <div class="shift-order-card">
-                          <div class="shift-order-card-content">
-                            <div class="shift-order-card-left">
-                              <span class="order-start">${formatTime(order.startTime)}</span>
-                              <span class="order-id">${order["Kundorder"]||order["OrderID"]||""}</span>
-                            </div>
-                            <div class="shift-order-card-right">
-                              <span class="order-weight">${order["Planerad Vikt"]||0} kg</span>
-                              <span class="order-end">${formatTime(order.endTime)}</span>
+      
+      recalcSchedule();
+      checkAndHandleOverflow(); // Check for overflow orders after initial scheduling
+      renderPage();
+      
+      // Rendera visuella skiftblock
+      if(window.renderShiftsOverview) {
+        // Patch: override renderShiftsOverview to use formatTime for order times and remove hashtag
+        window.renderShiftsOverview = function(shifts) {
+          const container = document.getElementById("shiftsOverview");
+          container.innerHTML = "";
+          // Hämta färger från CSS-variabler istället för hårdkodade värden
+          const getVar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+          const shiftColors = {
+            FM: getVar("--shift-fm") || "#2563eb",
+            EM: getVar("--shift-em") || "#60a5fa",
+            Natt: getVar("--shift-natt") || "#fbbf24"
+          };
+          const shiftNames = { FM: "FM (06:00-14:00)", EM: "EM (14:00-22:30)", Natt: "Natt (22:30-06:00)" };
+          Object.keys(shifts).forEach(shiftKey => {
+              const shift = shifts[shiftKey];
+              const orders = shift.orders || [];
+              const maxKgPerHour = Math.max(...Object.values(shifts).map(s=>s.kgPerHour));
+              const percent = maxKgPerHour ? Math.round((shift.kgPerHour/maxKgPerHour)*100) : 0;
+              const color = shiftColors[shiftKey];
+              const icon = shiftKey==="FM"?"🌅":shiftKey==="EM"?"🌇":"🌙";
+              const shiftDiv = document.createElement("div");
+              shiftDiv.className = "shift-block";
+              shiftDiv.innerHTML = `
+                  <div class="shift-block-header" style="color:${color}">${icon} <b>${shiftNames[shiftKey]}</b></div>
+                  <div class="shift-progress-bar" style="background:#3b82f6">
+                      <div class="shift-progress" style="width:${percent}%;background:${color}"></div>
+                  </div>
+                  <div class="shift-block-summary">
+                      <span>Ordrar: <b>${shift.totalOrders}</b></span>
+                      <span>KG: <b>${shift.totalKg.toFixed(1)}</b></span>
+                      <span>KG/TIM: <b>${shift.kgPerHour.toFixed(2)}</b></span>
+                  </div>
+                  <div class="shift-orders-list">
+                      ${orders.map(order => `
+                          <div class="shift-order-card">
+                            <div class="shift-order-card-content">
+                              <div class="shift-order-card-left">                                <span class="order-start">${formatTimeFunc(order.startTime)}</span>
+                                <span class="order-id">${order["Kundorder"]||order["OrderID"]||""}</span>
+                              </div>
+                              <div class="shift-order-card-right">
+                                <span class="order-weight">${order["Planerad Vikt"]||0} kg</span>
+                                <span class="order-end">${formatTimeFunc(order.endTime)}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                    `).join("")}
-                </div>
-            `;
-            container.appendChild(shiftDiv);
-        });
-      };
-      window.renderShiftsOverview(shiftStats);
-    }
-    // Summering
-    renderShiftSummary(shiftStats);    // Analys
-    renderShiftAnalysis(shiftStats);    // Skiftbar
-    renderShiftBar(shifts);
+                      `).join("")}
+                  </div>
+              `;
+              container.appendChild(shiftDiv);
+          });
+        };
+        window.renderShiftsOverview(shiftStats);
+      }
+      
+      // Summering
+      renderShiftSummary(shiftStats);
+      // Analys
+      renderShiftAnalysis(shiftStats);
+      // Skiftbar
+      renderShiftBar(currentShifts);
     
     } catch (error) {
       console.error('Error in loadOrders:', error);
@@ -209,27 +200,19 @@
     }
     container.innerHTML = text;
   }
-
   function addManualStop(){
     const from=prompt("Från klockan (HH:MM)","06:00");
     if(!from) return;
     const to=prompt("Till klockan (HH:MM)","06:10");
     if(!to) return;
-    const start=parseTime(from);
-    const end=parseTime(to);
+    const start=parseTimeFunc(from);
+    const end=parseTimeFunc(to);
     if(isNaN(start)||isNaN(end)||end<=start){
       alert("Ogiltig tid");
       return;
-    }
-    manualStops.push({start,end});
+    }    manualStops.push({start,end});
     recalcSchedule();
     renderPage();
-  }
-
-  function formatTime(minutes){
-    const h = Math.floor(minutes/60);
-    const m = Math.round(minutes%60);
-    return `kl ${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}`;
   }
 
   function showOrderCalculation(btn, order, machine){
@@ -250,7 +233,7 @@
       resultDiv.innerHTML = "<span style='color:#b91c1c'><strong>Kan inte visa uträkning:</strong> Saknar nödvändig data.</span>";
       return;
     }
-    const speed = getMachineSpeed(machine, sheetLength);
+    const speed = getMachineSpeed ? getMachineSpeed(machine, sheetLength) : 200; // Fallback speed
     const rawRollWidthFirst = parseFloat((rawRollWidth+"").split(",")[0]);
     let L = (plannedWeight * 1000000) / (gramvikt * rawRollWidthFirst);
     let L_per_lane = L;
@@ -260,7 +243,7 @@
       lengthFormula += ` / ${lanes}`;
     }
     const productionTimeMinutes = L_per_lane / speed;
-    const stopObj = calculateStopTimes(order);
+    const stopObj = window.calculateStopTimes ? window.calculateStopTimes(order) : { normalStopTime: 15 * 60 }; // Fallback
     const stopTime = stopObj.normalStopTime / 60;
     const totalTime = productionTimeMinutes + stopTime;
     function fm(mins){ const h=Math.floor(mins/60);const m=Math.round(mins%60);return h+" h "+m.toString().padStart(2,"0")+" min"; }
@@ -290,15 +273,8 @@
             a.style.transform="rotate(0deg)";
           }
         });
-        e.stopPropagation();
-      });
+        e.stopPropagation();      });
     });
-  }
-
-  function parseTime(str){
-    const [h,m] = str.split(":").map(n=>parseInt(n,10));
-    if(isNaN(h) || isNaN(m)) return NaN;
-    return h*60 + m;
   }
 
   function analyzeShiftOrders(list){
@@ -311,54 +287,129 @@
     if(lengths.size>3) issues.push("Stor variation i arklängd");
     return issues;
   }
-  function recalcSchedule(){
-    const starts = { FM: 6 * 60, EM: 14 * 60, Natt: 22.5 * 60 }; // När skiften startar
-    const limits = { FM: 14 * 60, EM: 22.5 * 60, Natt: 30 * 60 }; // När skiften slutar (30*60 = 06:00 nästa dag)
-    
-    // Calculate times for each shift independently
-    Object.keys(currentShifts).forEach(shift => {
-      let currentTime = starts[shift];
-      const shiftEndTime = limits[shift];
-      
-      // Calculate start/end times for all orders in this shift
-      currentShifts[shift].forEach((order, index) => {
-        let orderStart = currentTime;
-        let orderEnd = orderStart + order.productionTime;
-        
-        // Apply manual stops that affect this order
-        manualStops.forEach(st => {
-          if(st.end <= orderStart || st.start >= orderEnd) return;
-          if(st.start <= orderStart) { 
-            orderStart = st.end; 
-            orderEnd = orderStart + order.productionTime; 
-          } else if(st.start < orderEnd) { 
-            orderEnd += st.end - st.start; 
-          }
-        });
-        
-        // Handle day boundary for Natt shift (can cross midnight)
-        if (shift === 'Natt') {
-          order.startTime = orderStart % 1440;
-          order.endTime = orderEnd % 1440;
-        } else {
-          order.startTime = orderStart;
-          order.endTime = orderEnd;
-        }
-        
-        // Mark if this order exceeds shift capacity
-        if (orderEnd > shiftEndTime) {
-          order._exceedsCapacity = true;
-        } else {
-          order._exceedsCapacity = false;
-        }
-        
-        currentTime = orderEnd; // Next order starts when this one ends
-      });
+
+  // Helper functions for drag and drop
+  function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.order-row:not(.dragging)')];
+
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
+
+  function createDragPlaceholder() {
+    const placeholder = document.createElement('div');
+    placeholder.classList.add('drag-placeholder');
+    // Adding an arrow indicator
+    placeholder.innerHTML = '<span class="drop-arrow">➔</span> Indikerar släpposition'; // Unicode right arrow, or use an SVG/icon font
+    document.body.appendChild(placeholder); // Temporarily append to body, will be moved by dragover
+    return placeholder;
+  }
+
+  function removeDragPlaceholder() {
+    const placeholder = document.querySelector('.drag-placeholder');
+    if (placeholder && placeholder.parentNode) {
+      placeholder.parentNode.removeChild(placeholder);
+    }
+  }
+
+  function highlightDropzones(highlight) {
+    const dropzones = document.querySelectorAll('.orders-list'); // Assuming .orders-list are the drop targets
+    dropzones.forEach(zone => {
+      if (highlight) {
+        zone.classList.add('dropzone-active-highlight');
+      } else {
+        zone.classList.remove('dropzone-active-highlight');
+      }
     });
+  }
+
+  let currentDragGhost = null; // Keep a reference to the current ghost
+
+  function createDragGhost(draggedElement) {
+    removeDragGhost(); // Remove any existing ghost
+    const ghost = draggedElement.cloneNode(true);
+    ghost.classList.add('drag-ghost');
+    // Style the ghost
+    ghost.style.position = 'absolute';
+    ghost.style.pointerEvents = 'none'; // Make sure it doesn't interfere with mouse events on other elements
+    ghost.style.opacity = '0.75';
+    ghost.style.zIndex = '1000'; // Ensure it's on top
+    // Copy dimensions
+    const rect = draggedElement.getBoundingClientRect();
+    ghost.style.width = `${rect.width}px`;
+    ghost.style.height = `${rect.height}px`;
     
-    // Update global reference
-    window.currentShifts = currentShifts;
-  }  function renderPage(){
+    document.body.appendChild(ghost);
+    currentDragGhost = ghost;
+    return ghost;
+  }
+
+  function updateDragGhostPosition(ghostElement, event) {
+    if (ghostElement) {
+      // Offset to position the ghost nicely relative to the cursor, e.g., top-left
+      ghostElement.style.left = `${event.clientX + 5}px`;
+      ghostElement.style.top = `${event.clientY + 5}px`;
+    }
+  }
+
+  function removeDragGhost() {
+    if (currentDragGhost && currentDragGhost.parentNode) {
+      currentDragGhost.parentNode.removeChild(currentDragGhost);
+    }
+    currentDragGhost = null;
+  }
+  function recalcSchedule(){
+    // Consolidate all orders that need rescheduling
+    // The order here is important: FM, EM, Natt, then overflow.
+    // This order reflects a typical top-to-bottom reading of the schedule.
+    let allOrdersToReschedule = [
+        ...currentShifts.FM,
+        ...currentShifts.EM,
+        ...currentShifts.Natt,
+        ...overflowOrders // Include any orders that were previously in overflow
+    ];
+
+    // Clear global overflow before redistributing; distributeOrdersToShifts will repopulate it.
+    overflowOrders = []; 
+
+    // Use modular scheduling function or fallback
+    if (distributeOrdersToShifts) {
+      const result = distributeOrdersToShifts(allOrdersToReschedule, currentShifts, machineId);
+      overflowOrders = result.overflowOrders || [];
+      currentShifts = result.shifts || currentShifts;
+    } else {
+      // Fallback: distribute manually (should not happen if modules are loaded properly)
+      console.warn('Scheduling module not available, using basic fallback');
+      currentShifts = { FM: allOrdersToReschedule, EM: [], Natt: [] };
+    }
+
+    // Calculate statistics based on the new schedule in currentShifts
+    const shiftStats = calculateShiftStats ? 
+      calculateShiftStats(currentShifts) : 
+      calculateShiftStats(currentShifts);
+
+    // Call rendering functions to update the UI
+    if (window.renderShiftsOverview) { // Ensure this function exists
+        window.renderShiftsOverview(shiftStats);
+    }
+    renderShiftSummary(shiftStats); 
+    renderShiftAnalysis(shiftStats); 
+    renderShiftBar(currentShifts); // renderShiftBar expects currentShifts object
+    
+    renderPage(); // This is crucial: it re-renders the order lists in the UI
+                  // based on the updated currentShifts.
+    
+    checkAndHandleOverflow(); // Visually indicate any orders that still couldn't be scheduled.
+  }
+
+  function renderPage() {
     const ordersContainer=document.getElementById("ordersContainer");
     if (!ordersContainer) {
       console.error('ordersContainer not found!');
@@ -540,7 +591,7 @@
           orderDiv.innerHTML=`
           <div class="order-card">            <div class="order-card-header">
               <div class="order-id">${o["Kundorder"]||"Okänd"}</div>
-              <div class="order-time">${formatTime(o.startTime)} - ${formatTime(o.endTime)}</div>
+              <div class="order-time">${formatTimeFunc(o.startTime)} - ${formatTimeFunc(o.endTime)}</div>
             </div>
             <div class="order-card-content" style="display:none;">
               <div class="order-detail">
@@ -583,7 +634,7 @@
           if(st.start>=o.startTime && st.start<o.endTime){
             const stopDiv=document.createElement("div");
             stopDiv.className="manual-stop";
-            stopDiv.innerHTML=`Stopp ${formatTime(st.start)}-${formatTime(st.end)} <button data-i='${si}'>X</button>`;
+            stopDiv.innerHTML=`Stopp ${formatTimeFunc(st.start)}-${formatTimeFunc(st.end)} <button data-i='${si}'>X</button>`;
             stopDiv.querySelector("button").onclick=()=>{manualStops.splice(si,1);recalcSchedule();renderPage();};
             list.appendChild(stopDiv);
           }
@@ -867,8 +918,6 @@
           }
         }, 300);
       }
-    }, 4000);
-  }
+    }, 4000);  }
 
-  // Initialize page when DOM is loaded
-})();
+// Initialize page when DOM is loaded

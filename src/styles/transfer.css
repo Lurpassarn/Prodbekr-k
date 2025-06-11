@@ -1,0 +1,231 @@
+/* =================================================================== */
+/* CROSS-MACHINE TRANSFER FUNCTIONALITY                             */
+/* =================================================================== */
+
+/* Transfer Section */
+.transfer-section {
+  background: var(--glass-bg);
+  border: var(--border);
+  border-radius: var(--border-radius);
+  padding: 16px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+}
+
+.transfer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.transfer-header h4 {
+  margin: 0;
+  font-size: 1.1em;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.transfer-toggle {
+  background: var(--glass-bg);
+  border: var(--border);
+  border-radius: var(--border-radius);
+  padding: 6px 12px;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.transfer-toggle.active {
+  background: var(--primary-gradient);
+  color: #fff;
+  box-shadow: var(--shadow);
+}
+
+.transfer-description {
+  font-size: 0.85em;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.transfer-status {
+  background: rgba(59, 130, 246, 0.1);
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  border-radius: var(--border-radius);
+  padding: 16px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+}
+
+.transfer-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.transfer-status-header h4 {
+  margin: 0;
+  font-size: 1.1em;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.transfer-accept-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--border-radius);
+  padding: 6px 12px;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.transfer-accept-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.transfer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transfer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--glass-bg);
+  border: var(--border);
+  border-radius: var(--border-radius);
+  padding: 8px 12px;
+  backdrop-filter: blur(5px);
+}
+
+.transfer-order {
+  font-weight: 700;
+  color: var(--accent);
+  flex: 1;
+}
+
+.transfer-from {
+  font-size: 0.8em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.transfer-accept-single,
+.transfer-reject-single {
+  background: none;
+  border: var(--border);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 700;
+  transition: var(--transition);
+}
+
+.transfer-accept-single {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.transfer-accept-single:hover {
+  background: rgba(16, 185, 129, 0.1);
+  transform: scale(1.1);
+}
+
+.transfer-reject-single {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.transfer-reject-single:hover {
+  background: rgba(239, 68, 68, 0.1);
+  transform: scale(1.1);
+}
+
+.machine-transfer-target.transfer-mode-active {
+  border: 2px dashed var(--accent);
+  background: rgba(251, 191, 36, 0.1);
+  position: relative;
+}
+
+.machine-transfer-target.transfer-drop-target {
+  border-color: var(--primary);
+  background: rgba(59, 130, 246, 0.2);
+  transform: scale(1.02);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+}
+
+.transfer-indicator {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--accent);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.transfer-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--glass-bg);
+  border: var(--border);
+  border-radius: var(--border-radius);
+  padding: 12px 20px;
+  font-weight: 600;
+  z-index: 1000;
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-elevated);
+  animation: slideInRight 0.3s ease;
+}
+
+.transfer-message-success {
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #10b981;
+}
+
+.transfer-message-warning {
+  border-color: rgba(251, 191, 36, 0.5);
+  color: var(--accent);
+}
+
+.transfer-message-info {
+  border-color: rgba(59, 130, 246, 0.5);
+  color: var(--primary);
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
