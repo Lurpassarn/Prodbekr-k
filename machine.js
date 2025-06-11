@@ -18,6 +18,7 @@ window.currentShifts = currentShifts;
 window.recalcSchedule = recalcSchedule;
 window.renderPage = renderPage;
 window.loadOrders = loadOrders;
+window.renderShiftsOverview = renderShiftsOverview;
 
 function getSavedPlans(){
   const data = JSON.parse(localStorage.getItem("savedPlans")||"{}");
@@ -62,7 +63,7 @@ async function loadOrders() {
 
       if (distributeOrdersToShifts) {
         // Use the new modular distribution function
-        const result = distributeOrdersToShifts(ordersWithTimes, currentShifts, machineId);
+        const result = distributeOrdersToShifts(ordersWithTimes, getMachineSpeed, machineId);
         overflowOrders = result.overflowOrders || [];
         currentShifts = result.shifts || currentShifts;
       } else {
@@ -71,11 +72,13 @@ async function loadOrders() {
         ordersWithTimes.forEach(order => {
           currentShifts.FM.push(order); // Put all in FM as fallback
         });
-      }
-        // Calculate shift statistics using modular function or fallback
-      const shiftStats = calculateShiftStats ? 
-        calculateShiftStats(currentShifts) : 
-        calculateShiftStats(currentShifts);
+      }        
+
+      // Calculate shift statistics using modular function or fallback
+      const shiftStats = calculateShiftStats(currentShifts);
+      
+      console.log("📊 Initial shiftStats:", shiftStats);
+      console.log("📦 currentShifts before recalc:", currentShifts);
         
       // Ensure productionTime is set for all orders
       currentShifts = {
@@ -88,67 +91,8 @@ async function loadOrders() {
       checkAndHandleOverflow(); // Check for overflow orders after initial scheduling
       renderPage();
       
-      // Rendera visuella skiftblock
-      if(window.renderShiftsOverview) {
-        // Patch: override renderShiftsOverview to use formatTime for order times and remove hashtag
-        window.renderShiftsOverview = function(shifts) {
-          const container = document.getElementById("shiftsOverview");
-          container.innerHTML = "";
-          // Hämta färger från CSS-variabler istället för hårdkodade värden
-          const getVar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-          const shiftColors = {
-            FM: getVar("--shift-fm") || "#2563eb",
-            EM: getVar("--shift-em") || "#60a5fa",
-            Natt: getVar("--shift-natt") || "#fbbf24"
-          };
-          const shiftNames = { FM: "FM (06:00-14:00)", EM: "EM (14:00-22:30)", Natt: "Natt (22:30-06:00)" };
-          Object.keys(shifts).forEach(shiftKey => {
-              const shift = shifts[shiftKey];
-              const orders = shift.orders || [];
-              const maxKgPerHour = Math.max(...Object.values(shifts).map(s=>s.kgPerHour));
-              const percent = maxKgPerHour ? Math.round((shift.kgPerHour/maxKgPerHour)*100) : 0;
-              const color = shiftColors[shiftKey];
-              const icon = shiftKey==="FM"?"🌅":shiftKey==="EM"?"🌇":"🌙";
-              const shiftDiv = document.createElement("div");
-              shiftDiv.className = "shift-block";
-              shiftDiv.innerHTML = `
-                  <div class="shift-block-header" style="color:${color}">${icon} <b>${shiftNames[shiftKey]}</b></div>
-                  <div class="shift-progress-bar" style="background:#3b82f6">
-                      <div class="shift-progress" style="width:${percent}%;background:${color}"></div>
-                  </div>
-                  <div class="shift-block-summary">
-                      <span>Ordrar: <b>${shift.totalOrders}</b></span>
-                      <span>KG: <b>${shift.totalKg.toFixed(1)}</b></span>
-                      <span>KG/TIM: <b>${shift.kgPerHour.toFixed(2)}</b></span>
-                  </div>
-                  <div class="shift-orders-list">
-                      ${orders.map(order => `
-                          <div class="shift-order-card">
-                            <div class="shift-order-card-content">
-                              <div class="shift-order-card-left">                                <span class="order-start">${formatTimeFunc(order.startTime)}</span>
-                                <span class="order-id">${order["Kundorder"]||order["OrderID"]||""}</span>
-                              </div>
-                              <div class="shift-order-card-right">
-                                <span class="order-weight">${order["Planerad Vikt"]||0} kg</span>
-                                <span class="order-end">${formatTimeFunc(order.endTime)}</span>
-                              </div>
-                            </div>
-                          </div>
-                      `).join("")}
-                  </div>
-              `;
-              container.appendChild(shiftDiv);
-          });
-        };
-        window.renderShiftsOverview(shiftStats);
-      }
-      
-      // Summering
-      renderShiftSummary(shiftStats);
-      // Analys
-      renderShiftAnalysis(shiftStats);
-      // Skiftbar
-      renderShiftBar(currentShifts);
+      // Summering, analys och skiftbar anropas redan från recalcSchedule()
+      // så vi behöver inte anropa dem igen här
     
     } catch (error) {
       console.error('Error in loadOrders:', error);
@@ -199,14 +143,13 @@ async function loadOrders() {
       if(factors.length) text += "<br><ul><li>" + factors.join("</li><li>") + "</li></ul>";
     }
     container.innerHTML = text;
-  }
-  function addManualStop(){
+  }  function addManualStop(){
     const from=prompt("Från klockan (HH:MM)","06:00");
     if(!from) return;
     const to=prompt("Till klockan (HH:MM)","06:10");
     if(!to) return;
-    const start=parseTimeFunc(from);
-    const end=parseTimeFunc(to);
+    const start=parseTime(from);
+    const end=parseTime(to);
     if(isNaN(start)||isNaN(end)||end<=start){
       alert("Ogiltig tid");
       return;
@@ -377,11 +320,9 @@ async function loadOrders() {
     ];
 
     // Clear global overflow before redistributing; distributeOrdersToShifts will repopulate it.
-    overflowOrders = []; 
-
-    // Use modular scheduling function or fallback
+    overflowOrders = [];     // Use modular scheduling function or fallback
     if (distributeOrdersToShifts) {
-      const result = distributeOrdersToShifts(allOrdersToReschedule, currentShifts, machineId);
+      const result = distributeOrdersToShifts(allOrdersToReschedule, getMachineSpeed, machineId);
       overflowOrders = result.overflowOrders || [];
       currentShifts = result.shifts || currentShifts;
     } else {
@@ -391,14 +332,9 @@ async function loadOrders() {
     }
 
     // Calculate statistics based on the new schedule in currentShifts
-    const shiftStats = calculateShiftStats ? 
-      calculateShiftStats(currentShifts) : 
-      calculateShiftStats(currentShifts);
-
-    // Call rendering functions to update the UI
-    if (window.renderShiftsOverview) { // Ensure this function exists
-        window.renderShiftsOverview(shiftStats);
-    }
+    const shiftStats = calculateShiftStats(currentShifts);
+    console.log("📊 Recalc shiftStats:", shiftStats);// Call rendering functions to update the UI
+    renderShiftsOverview(shiftStats); // Call directly, not via window
     renderShiftSummary(shiftStats); 
     renderShiftAnalysis(shiftStats); 
     renderShiftBar(currentShifts); // renderShiftBar expects currentShifts object
@@ -591,7 +527,7 @@ async function loadOrders() {
           orderDiv.innerHTML=`
           <div class="order-card">            <div class="order-card-header">
               <div class="order-id">${o["Kundorder"]||"Okänd"}</div>
-              <div class="order-time">${formatTimeFunc(o.startTime)} - ${formatTimeFunc(o.endTime)}</div>
+              <div class="order-time">${formatTime(o.startTime)} - ${formatTime(o.endTime)}</div>
             </div>
             <div class="order-card-content" style="display:none;">
               <div class="order-detail">
@@ -631,10 +567,9 @@ async function loadOrders() {
         
         // Add manual stops for this order
         manualStops.forEach((st,si)=>{
-          if(st.start>=o.startTime && st.start<o.endTime){
-            const stopDiv=document.createElement("div");
+          if(st.start>=o.startTime && st.start<o.endTime){            const stopDiv=document.createElement("div");
             stopDiv.className="manual-stop";
-            stopDiv.innerHTML=`Stopp ${formatTimeFunc(st.start)}-${formatTimeFunc(st.end)} <button data-i='${si}'>X</button>`;
+            stopDiv.innerHTML=`Stopp ${formatTime(st.start)}-${formatTime(st.end)} <button data-i='${si}'>X</button>`;
             stopDiv.querySelector("button").onclick=()=>{manualStops.splice(si,1);recalcSchedule();renderPage();};
             list.appendChild(stopDiv);
           }
@@ -918,6 +853,117 @@ async function loadOrders() {
           }
         }, 300);
       }
-    }, 4000);  }
+    }, 4000);  }  function renderShiftsOverview(shiftStats) {
+    console.log("🔍 renderShiftsOverview called with:", shiftStats);
+    const container = document.getElementById("shiftsOverview");
+    if (!container) {
+      console.error("❌ shiftsOverview container not found!");
+      return;
+    }
+    
+    console.log("✅ shiftsOverview container found:", container);
+    
+    // Check if shiftStats has data
+    if (!shiftStats || typeof shiftStats !== 'object') {
+      console.error("❌ Invalid shiftStats:", shiftStats);
+      return;
+    }
+    
+    const shiftKeys = Object.keys(shiftStats);
+    console.log("📊 Shift keys found:", shiftKeys);
+    
+    if (shiftKeys.length === 0) {
+      console.warn("⚠️ No shifts in shiftStats");
+      container.innerHTML = "<p>Inga skiftdata tillgängliga</p>";
+      return;
+    }
+    
+    container.innerHTML = "";
+    
+    // Hämta färger från CSS-variabler
+    const getVar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    const shiftColors = {
+      FM: getVar("--shift-fm") || "#2563eb",
+      EM: getVar("--shift-em") || "#60a5fa",
+      Natt: getVar("--shift-natt") || "#fbbf24"
+    };
+    
+    const shiftNames = { 
+      FM: "FM (06:00-14:00)", 
+      EM: "EM (14:00-22:30)", 
+      Natt: "Natt (22:30-06:00)" 
+    };
+    
+    console.log("🎨 Using colors:", shiftColors);
+    
+    shiftKeys.forEach(shiftKey => {
+      console.log(`🔄 Processing shift: ${shiftKey}`);
+      
+      const shift = shiftStats[shiftKey];
+      if (!shift) {
+        console.warn(`⚠️ No data for shift ${shiftKey}`);
+        return;
+      }
+      
+      const orders = shift.orders || [];
+      console.log(`📦 Orders for ${shiftKey}:`, orders.length, orders);
+      
+      const maxKgPerHour = Math.max(...Object.values(shiftStats).map(s => s.kgPerHour || 0));
+      const percent = maxKgPerHour ? Math.round((shift.kgPerHour / maxKgPerHour) * 100) : 0;
+      const color = shiftColors[shiftKey];
+      const icon = shiftKey === "FM" ? "🌅" : shiftKey === "EM" ? "🌇" : "🌙";
+      
+      console.log(`📈 ${shiftKey} stats: kg/h=${shift.kgPerHour}, percent=${percent}%`);
+      
+      const shiftDiv = document.createElement("div");
+      shiftDiv.className = "shift-block";
+      
+      const ordersHtml = orders.map(order => {
+        const orderHtml = `
+            <div class="shift-order-card">
+              <div class="shift-order-card-content">
+                <div class="shift-order-card-left">
+                  <span class="order-start">${formatTime(order.startTime || 0)}</span>
+                  <span class="order-id">${order["Kundorder"] || order["OrderID"] || ""}</span>
+                </div>
+                <div class="shift-order-card-right">
+                  <span class="order-weight">${order["Planerad Vikt"] || 0} kg</span>
+                  <span class="order-end">${formatTime(order.endTime || 0)}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        console.log(`📋 Generated order HTML for ${order["Kundorder"] || "unknown"}:`, orderHtml.substring(0, 100) + "...");
+        return orderHtml;
+      }).join("");
+      
+      const shiftHtml = `
+        <div class="shift-block-header" style="color:${color}">
+          ${icon} <b>${shiftNames[shiftKey]}</b>
+        </div>
+        <div class="shift-progress-bar" style="background:#3b82f6">
+          <div class="shift-progress" style="width:${percent}%;background:${color}"></div>
+        </div>
+        <div class="shift-block-summary">
+          <span>Ordrar: <b>${shift.totalOrders}</b></span>
+          <span>KG: <b>${shift.totalKg.toFixed(1)}</b></span>
+          <span>KG/TIM: <b>${shift.kgPerHour.toFixed(2)}</b></span>
+        </div>
+        <div class="shift-orders-list">
+          ${ordersHtml}
+        </div>
+      `;
+      
+      console.log(`🏗️ Generated complete HTML for ${shiftKey}:`, shiftHtml.substring(0, 200) + "...");
+      
+      shiftDiv.innerHTML = shiftHtml;
+      container.appendChild(shiftDiv);
+      
+      console.log(`✅ Added ${shiftKey} block to container`);
+    });
+    
+    console.log("🎉 renderShiftsOverview completed successfully!");
+    console.log("📊 Final container HTML:", container.innerHTML.substring(0, 300) + "...");
+  }
 
 // Initialize page when DOM is loaded

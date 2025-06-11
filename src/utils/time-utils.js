@@ -40,7 +40,10 @@ function formatDuration(minutes) {
   return `${h}h ${m}min`;
 }
 
-// Export for browser environment
+// ES6 Exports
+export { formatTime, parseTime, formatDuration };
+
+// Export for browser environment (backward compatibility)
 if (typeof window !== 'undefined') {
   window.TimeUtilsModule = {
     formatTime,
@@ -49,7 +52,7 @@ if (typeof window !== 'undefined') {
   };
 }
 
-// Export for Node.js environment
+// Export for Node.js environment (backward compatibility)
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     formatTime,

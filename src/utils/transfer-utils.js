@@ -188,7 +188,23 @@ function formatTransferTime(timestamp) {
   }
 }
 
-// Export for browser environment
+// ES6 Exports
+export {
+  getCurrentMachine,
+  getOtherMachines,
+  savePendingTransfers,
+  loadPendingTransfers,
+  createTransfer,
+  addPendingTransfer,
+  removePendingTransfer,
+  getPendingTransfersForMachine,
+  clearPendingTransfersForMachine,
+  validateOrderForTransfer,
+  getOrderDisplayName,
+  formatTransferTime
+};
+
+// Export for browser environment (backward compatibility)
 if (typeof window !== 'undefined') {
   window.CrossMachineTransferUtils = {
     getCurrentMachine,
@@ -206,7 +222,7 @@ if (typeof window !== 'undefined') {
   };
 }
 
-// Export for Node.js environment
+// Export for Node.js environment (backward compatibility)
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     getCurrentMachine,
