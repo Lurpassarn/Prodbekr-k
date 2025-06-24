@@ -28,6 +28,23 @@ export const SHIFT_ORDER = ["FM", "EM", "Natt"];
 
 export const SHIFT_COLORS = {
   FM: "#2563eb",
-  EM: "#60a5fa", 
+  EM: "#60a5fa",
   Natt: "#fbbf24"
 };
+
+// Derived constant for compatibility with legacy scripts
+export const SHIFT_TIMES = {
+  FM: { START: SHIFT_DEFINITIONS.FM.start, END: SHIFT_DEFINITIONS.FM.end },
+  EM: { START: SHIFT_DEFINITIONS.EM.start, END: SHIFT_DEFINITIONS.EM.end },
+  NATT: { START: SHIFT_DEFINITIONS.Natt.start, END: SHIFT_DEFINITIONS.Natt.end }
+};
+
+// Expose configuration on the window for non-module environments
+if (typeof window !== "undefined") {
+  window.ShiftsConfig = {
+    SHIFT_DEFINITIONS,
+    SHIFT_ORDER,
+    SHIFT_COLORS,
+    SHIFT_TIMES
+  };
+}
