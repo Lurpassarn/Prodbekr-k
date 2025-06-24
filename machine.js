@@ -669,8 +669,16 @@ async function loadOrders() {
   
   // Overflow handling with sidebar support
   function checkAndHandleOverflow() {
-    const starts = { FM: 6 * 60, EM: 14 * 60, Natt: 22.5 * 60 };
-    const limits = { FM: 14 * 60, EM: 22.5 * 60, Natt: 30 * 60 };
+    const starts = {
+      FM: SHIFT_DEFINITIONS.FM.start,
+      EM: SHIFT_DEFINITIONS.EM.start,
+      Natt: SHIFT_DEFINITIONS.Natt.start
+    };
+    const limits = {
+      FM: SHIFT_DEFINITIONS.FM.end,
+      EM: SHIFT_DEFINITIONS.EM.end,
+      Natt: SHIFT_DEFINITIONS.Natt.end
+    };
     
     overflowOrders = []; // Reset overflow
     
